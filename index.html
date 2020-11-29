@@ -17,49 +17,49 @@
 
           <!-- screen 1 -->
           <div id="intro-gui">
-            <h1>ברוכים הבאים למשחק הצורות המשתנות</h1>
-            <p>המטרה שלך היא לגלות צורות מעניינות ויפות.</p>
-            <p>על מנת להמשיך, בבקשה הכנס/י את הספרות הייחודיות שניתנו לך.</p>
+            <h1>Welcome to the game of shiting shapes</h1>
+            <p>Your goal is to discover intersting and beautiful shapes.</p>
+            <p>To continue, please enter the unique ID given to you</p>
             <br>
             <p><input id="user-provided-id"></p>
-            <br><button id="done-intro">המשך</button></p>
+            <br><button id="done-intro">Continue</button></p>
           </div>
           <div id="training-gui">
-            <h1 id="training-title">שלב האימון</h1>
+            <h1 id="training-title">Training session</h1>
 
             <!-- screen 2 -->
             <div id="training-1">
-              <p>במשחק הזה תחקור/תחקרי את מרחב הצורות המשתנות
-                <br>כדי ליצור צורות מעניינות ויפות. 
+              <p>In this game you are ging to explore the space of "shifting shapes"
+                <br>and make interesting and beautiful shapes. 
               </p>
-              <p>על מנת ליצור את הצורות הללו עליך להזיז את הריבועים הירוקים המופיעים על המסך. </p>
+              <p>To make these shapes you are going to be moving these green blocks on the screen</p>
               <div class="bottom-text">
-                <p class="highlight">כעת עליך לגרור את הריבוע השמאלי ביותר או הימני ביותר למקום אחר.</p>
-                <br><button id="done-training-1" class="hidden">המשך</button>
+                <p class="highlight">Drag the left-most or right-most block to a different place.</p>
+                <br><button id="done-training-1" class="hidden">Next</button>
               </div>
             </div>
 
             <!-- screen 3 -->
             <div id="training-2" class="hidden">
-              <p>ניתן להזיז כל ריבוע, ובתנאי שכל הריבועים יישארו צמודים זה לזה.
-                <br>אם יש ריבוע שלא ניתן להזזה, עליך לבחור בריבוע אחר.
+              <p>You can move any block provided that all other blocks still touch each other.
+                <br>If there is a block you cannot move, choose another one.
               </p>
 
               ​<div class="bottom-text">
-                <p>ניתן להזיז כמה ריבועים שאת/ה רוצה
-                  <br>עד שתמצא/י צורה יפה ומעניינת בעיניך.</p>
-                <br><button id="done-training-2">הבנתי</button>
+                <p>You can move as many blocks as you like 
+                  <br>until you find a shape that is interesting and beautiful to you. </p>
+                <br><button id="done-training-2">Got it</button>
               </div> 
             </div>
 
             <!-- screen 4 -->
             <div id="training-3" class="hidden">
-              <p>כאשר יצרת צורה יפה ומעניינת בעיניך
-                <br>תוכל/י לשמור אותה על ידי לחיצה על התיבה האפורה
-                <br>או על ידי לחיצה על כפתור "שמור צורה"</p>
+              <p>When you make a shape that you find interesting and beautiful 
+                <br>you can save it by clicking on the grey box 
+                <br>or on the "Collect Shape" button, or by pressing the button in your hand.</p>
               <div class="bottom-text">
                 <p>אפשר לשמור צורה גם על ידי לחיצה על הלחצן הנוסף שבידך.</p>
-                <p class="highlight">לחצ/י עכשיו לשמירת הצורה.</p>
+                <p class="highlight">Save the shape now.</p>
               </div>
             </div>
 
@@ -67,57 +67,59 @@
             <div id="training-4" class="hidden">
               <p></p>
               <div class="bottom-text">
-                  <h1 id="training-title">שלב תרגול - חכו להוראות מהנסיין/ית</h1>
-                  <button id="done-training-4">המשך</button>
+                  <h1 id="training-title">Practice - wait for further instructions.</h1>
+                  <button id="done-training-4">Continue</button>
               </div>
             </div>
 
             <!-- screen 6 -->
             <div id="training-5" class="hidden">
-              <p>כאשר המשחק יסתיים, תוכל/י לראות את כל הצורות שיצרת
-                <br>ותתבקש/י לבחור את חמש הצורות האהובות עליך
+              <p>When the game is over you will get to see all of the shapes you have made
+                <br>and pick your 5 favorite shapes.
               </p>
               <div class="bottom-text">
-                  <p>אורך המשחק כ- 12 דקות.
-                      <!-- <br>Please play alone, in a quiet surroundings with no interruptions.
+                  <p>The game is 12 minutes long.
+                      <br>Please play alone, in a quiet surroundings with no interruptions.
                       <br>
-                      <br>Thanks and enjoy the game! -->
+                      <br>Thanks and enjoy the game!
                   </p>
-                  <button id="done-training-5">בוא נשחק</button>
+                  <button id="done-training-5">Let's play</button>
               </div>
             </div>
 
           </div>
           <div id="blocks-gui">
-            <button id="add-shape">שמור צורה</button>
-            <br><button id="done-adding">סיום</button>
+            <button id="add-shape">Collect shape</button>
+            <br><button id="done-adding">End Game</button>
 
-            <p id="end-early-message" class="hidden">אתה צריך לאסוף לפחות 5 צורות על מנת להמשיך</p>
+            <p id="end-early-message" class="hidden">You need to collect at least 5 shapes to move to the next step</p>
 
-            <p id="stuck-message" class="vertical-align hidden">אופס, הזמן נגמר!
-              <br>אתה צריך לאסוף לפחות 5 צורות על מנת להמשיך
+            <p id="stuck-message" class="vertical-align hidden">Ooops, time has run out!
+              <br>You need to collect at least 5 shapes to continue. 
               <br>
-              <br>טען מחדש ונסה שוב
+              <br>Please reload and try again
             </p>
 
-            <p id="continue-message" class="vertical-align hidden">נגמר הזמן!
+            <p id="continue-message" class="vertical-align hidden">Time's up!
               <br>
-              <br>לחץ על הלחצן למטה כדי להמשיך
+              <br>Press the button below to continue 
             </p>
 
             <div id="modal-confirm-done" class="hidden">
               <div id="modal-confirm-box">
-              <p>האם אתה בטוח שברצונך לסיים עכשיו?</p>   
-              <button id="modal-confirm-cancel-button">חזור למשחק</button>
-              <button id="modal-confirm-done-button">סוף המשחק</button>
+              <p>Are you sure you want to end now?</p>   
+              <button id="modal-confirm-cancel-button">Return to game</button>
+              <button id="modal-confirm-done-button">End game</button>
               </div>
           </div>
           </div>
           <div id="selection-gui">
-            <p id="gallery-instructions">אלו הצורות שאספת. אנא בחר/י את 5 הצורות היצירתיות ביותר בעיניך</p>
-            <button id="done-selection">סיום</button>
-            <button id="previous-page-button">למסך הקודם</button>
-            <button id="next-page-button">למסך הבא</button>
+            <p id="gallery-instructions">Below are the shapes you've collected during the game. 
+              <br>Please choose the 5 most creative shapes among them.
+            </p>
+            <button id="done-selection">Done</button>
+            <button id="previous-page-button">Previous page</button>
+            <button id="next-page-button">Next page</button>
           </div>
           <div id="results-gui">
             <div id="results-block">
