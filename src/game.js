@@ -244,6 +244,7 @@ class TrainingScene extends util.Entity {
     document.getElementById("training-3").style.display = "block";
 
     document.getElementById("add-shape").style.display = "block";
+    document.getElementById("pixi-canvas").focus();
     this.blockScene.preventAddingShape = false;
   }
 
