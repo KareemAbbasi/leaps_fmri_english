@@ -12,6 +12,7 @@ const DRAG_HIGHLIGHT_PERIOD = 500;
 const RED_METRICS_HOST = "api.creativeforagingtask.com";
 const RED_METRICS_GAME_VERSION = "b13751f1-637f-411b-8ce2-29b1b24fddf0";
 
+let letsPlayScene = false;
 
 const TRIGGERS = {
   "loadGame": 100, // When loads starts
@@ -195,14 +196,18 @@ class TrainingScene extends util.Entity {
     this.blockScene.on("addedShape", this.onAddedShape, this);
 
     document.getElementById("training-gui").style.display = "block";
+    document.getElementById("pixi-canvas").addEventListener("keyup", this.onKeyUp.bind(this));
     document.getElementById("done-training-1").addEventListener("click", this.onDonePart1.bind(this));
     document.getElementById("done-training-2").addEventListener("click", this.onDonePart2.bind(this));
     document.getElementById("done-training-4").addEventListener("click", this.onDonePart4.bind(this));
-    document.getElementById("done-training-5").addEventListener("click", e => {
-      this.done = true;
+    document.getElementById("done-training-5").addEventListener("click", this.finishTraining.bind(this));
+  }
 
-      sendTrigger("startGame");
-    });
+  finishTraining() {
+    this.done = true;
+    letsPlayScene = false;
+    galleryShapes = [];
+    sendTrigger("startGame");
   }
 
   update(timeSinceStart) {
@@ -261,6 +266,19 @@ class TrainingScene extends util.Entity {
   onDonePart4() {
     document.getElementById('training-4').style.display = "none";
     document.getElementById('training-5').style.display = "block";
+    document.getElementById("pixi-canvas").focus();
+    letsPlayScene = true;
+    this.blockScene.removeBlocks();
+  }
+
+  onKeyUp(e) {
+    // If they pressed a number key, add the shape
+    if (!isNaN(parseInt(e.key))) {
+      var keyValue = parseInt(e.key);
+      if (keyValue == 5 && letsPlayScene) {
+        this.finishTraining();
+      }
+    }
   }
 }
 
@@ -364,6 +382,12 @@ class BlockScene extends util.Entity {
 
     this.updateBlocks();
     
+  }
+
+  removeBlocks() {
+    console.log('hello there!!!!!');
+    this.container.removeChild(this.blocksContainer);
+    this.blockGrid = [];
   }
 
   update(timeSinceStart) {
