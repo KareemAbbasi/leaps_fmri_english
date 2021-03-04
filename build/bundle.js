@@ -8408,15 +8408,16 @@ function pixelPosToGridPos(pixelPos) {
 
 function drawBlock(graphics, fillColor) {
   graphics.beginFill(fillColor);
+  graphics.fillColor = fillColor;
   graphics.lineStyle(4, 0x000000, 1);
   graphics.drawRect(-BLOCK_WIDTH / 2, -BLOCK_WIDTH / 2, BLOCK_WIDTH, BLOCK_WIDTH);
   graphics.endFill();
 }
 
 // Creates blocks using different colors. For the source
-function makeSourceShape(gridPos, number) {
+function makeSourceShape(gridPos, color) {
   var rect = new PIXI.Graphics();
-  drawBlock(rect, SOURCE_COLORS[number]);
+  drawBlock(rect, color);
 
   // console.log("Grid position is " + String(gridPosToPixelPos(gridPos).x) + " " + String(gridPosToPixelPos(gridPosToPixelPos).y));
   rect.position = gridPosToPixelPos(gridPos);
@@ -8441,12 +8442,19 @@ function convertShapeToArray(shape) {
   });
 }
 
-function pointToArray(p) {
-  return [p.x, p.y];
-}
-
 function calculateSearchScore(shapeCount, timePlayed) {
   return Math.min(2 * (1 / 88 * shapeCount * (720000 / timePlayed) - 0.5), 1);
+}
+
+function shuffle(array) {
+  var res = array;
+  for (var i = res.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var _ref2 = [res[j], res[i]];
+    res[i] = _ref2[0];
+    res[j] = _ref2[1];
+  }
+  return res;
 }
 
 function toggleFullscreen() {
@@ -8724,16 +8732,16 @@ var BlockScene = function (_util$Entity3) {
       sceneLayer.addChild(this.container);
 
       // This is the gallery box in the top right corner of the screen.
-      var galleryBg = new PIXI.Graphics();
-      galleryBg.beginFill(0x808080);
-      galleryBg.lineColor = 0xffffff;
-      galleryBg.lineWidth = 1;
-      galleryBg.drawRect(0, 0, 150, 150);
-      galleryBg.endFill();
-      galleryBg.position.set(800, 10);
-      galleryBg.on("pointerdown", this.onAddShape, this);
-      galleryBg.interactive = true;
-      this.container.addChild(galleryBg);
+      // const galleryBg = new PIXI.Graphics();
+      // galleryBg.beginFill(0x808080);
+      // galleryBg.lineColor = 0xffffff;
+      // galleryBg.lineWidth = 1;
+      // galleryBg.drawRect(0, 0, 150, 150);
+      // galleryBg.endFill();
+      // galleryBg.position.set(800, 10);
+      // galleryBg.on("pointerdown", this.onAddShape, this);
+      // galleryBg.interactive = true;
+      // this.container.addChild(galleryBg);
 
       this.blocksContainer = new PIXI.Container();
       this.container.addChild(this.blocksContainer);
@@ -8775,9 +8783,11 @@ var BlockScene = function (_util$Entity3) {
       this.sourceBlocks = [];
       this.targetBlocks = [];
 
+      this.sourceColors = shuffle(SOURCE_COLORS);
+      // Source blocks
       for (var i = 0; i < 3; i++) {
-        var pos = new PIXI.Point(5, i);
-        var rect = makeSourceShape(pos, i);
+        var pos = new PIXI.Point(0, i);
+        var rect = makeSourceShape(pos, this.sourceColors[i]);
 
         rect.buttonMode = true;
         rect.on("pointerdown", this.onPointerDown.bind(this));
@@ -8789,15 +8799,17 @@ var BlockScene = function (_util$Entity3) {
         this.blocksContainer.addChild(rect);
       }
 
+      // Target blocks
       for (var _i = 0; _i < 3; _i++) {
-        var _pos = new PIXI.Point(0, _i);
+        var _pos = new PIXI.Point(11, _i - 4);
         var _rect = makeTargetShape(_pos);
 
-        _rect.buttonMode = true;
+        // TODO - for now target blocks cannot be chosen and dragged around. 
+        // rect.buttonMode = true;
         // rect.on("pointerdown", this.onPointerDown.bind(this))
         // rect.on("pointerup", this.onPointerUp.bind(this))
         // rect.on("pointermove", this.onPointerMove.bind(this))
-        _rect.interactive = true;
+        _rect.interactive = false;
 
         this.targetBlocks.push(_pos);
         this.blocksContainer.addChild(_rect);
@@ -8805,13 +8817,13 @@ var BlockScene = function (_util$Entity3) {
 
       this.updateBlocks();
 
-      var galleryParent = new PIXI.Container();
-      galleryParent.position.set(875, 85);
-      galleryParent.scale.set(0.3);
-      this.container.addChild(galleryParent);
+      // const galleryParent = new PIXI.Container();;
+      // galleryParent.position.set(875, 85);
+      // galleryParent.scale.set(0.3);
+      // this.container.addChild(galleryParent);
 
-      this.galleryLayer = new PIXI.Container();
-      galleryParent.addChild(this.galleryLayer);
+      // this.galleryLayer = new PIXI.Container();
+      // galleryParent.addChild(this.galleryLayer);
 
       // HTML
       document.getElementById("blocks-gui").style.display = "block";
@@ -9006,13 +9018,28 @@ var BlockScene = function (_util$Entity3) {
       this.draggingBlockStartGridPosition = pixelPosToGridPos(this.draggingBlock.position);
       this.startDragTime = Date.now();
 
+      var blockColor = this.draggingBlock.graphicsData[0].fillColor;
+      if (blockColor != parseInt(String(TARGET_COLOR))) {
+        //TODO You have some cleaning up to do.
+        alert("You chose the wrong color!");
+        console.log("Chosen color decimals is: " + String(blockColor));
+        this.draggingBlock = null;
+        return;
+      }
+      // if (blockColor == SOURCE_COLORS_DEC[0] || blockColor == SOURCE_COLORS_DEC[2]) {
+      //   alert("You chose the wrong color!");
+      //   this.draggingBlock = null;
+      // }
+      console.log(this.draggingBlock);
+
       // Reorder so this block is on top
+      // this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
       this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
 
       var gridPos = pixelPosToGridPos(this.draggingBlock.position);
-      this.blockGrid = removeFromArray(this.blockGrid, gridPos);
+      this.sourceBlocks = removeFromArray(this.sourceBlocks, gridPos);
 
-      this.highlightedBlocks.add(this.draggingBlock);
+      // this.highlightedBlocks.add(this.draggingBlock);
 
       // Disable html buttons
       document.getElementById("html-layer").className = "no-pointer-events";
@@ -9024,7 +9051,7 @@ var BlockScene = function (_util$Entity3) {
 
       this.dropBlock(this.draggingBlock, this.draggingBlock.position);
 
-      this.unhighlightBlock(this.draggingBlock);
+      // this.unhighlightBlock(this.draggingBlock);
 
       this.draggingBlock = null;
       this.draggingPointerId = null;
@@ -9091,7 +9118,8 @@ var BlockScene = function (_util$Entity3) {
           // } else {
           //   blockGraphic.interactive = false;
           // }
-          blockGraphic.interactive = false;
+          // blockGraphic.interactive = true;
+          return;
         }
       } catch (err) {
         _didIteratorError4 = true;
@@ -9112,37 +9140,70 @@ var BlockScene = function (_util$Entity3) {
     key: "dropBlock",
     value: function dropBlock(block, droppedPos) {
       // Find closest grid position
-      var gridPos = pixelPosToGridPos(droppedPos);
+      var droppedGridPos = pixelPosToGridPos(droppedPos);
 
-      var freeGridPositions = this.findFreeGridPositions();
-      var closestGridPos = _.min(freeGridPositions, function (freePos) {
-        return distance(gridPos, freePos);
+      var freeGridPositionsSource = this.findFreeGridPositionsSource();
+      var closestSourcePos = _.min(freeGridPositionsSource, function (freePos) {
+        return distance(droppedGridPos, freePos);
       });
 
-      block.position = gridPosToPixelPos(closestGridPos);
-      this.blockGrid.push(closestGridPos);
+      var freeGridPositionsTarget = this.findFreeGridPositionsTarget();
+      var closestTargetPos = _.min(freeGridPositionsTarget, function (freePos) {
+        return distance(droppedGridPos, freePos);
+      });
+
+      // Check if it is closer to the target, closer to who?
+      var distanceToTarget = distance(droppedGridPos, closestTargetPos);
+      var distanceToSource = distance(droppedGridPos, closestSourcePos);
+
+      var closerToTarget = distanceToTarget < distanceToSource;
+
+      // This means the user has to drop in the area of one block around the target.
+      var BOUNDARY_LIMIT = 1;
+
+      //TODO remove
+      console.log("Distance to target " + String(distanceToTarget));
+      console.log("Boundary limit is: " + String(BOUNDARY_LIMIT));
+      if (closerToTarget && distanceToTarget <= BOUNDARY_LIMIT) {
+        // Check if it is in the boundary of the target or if it is far.
+        // If closer to the target and within the boundary, attach it to the closest box.
+        // If closer to the target but not in the allowed boundary, attach it to the source
+        block.position = gridPosToPixelPos(closestTargetPos);
+
+        // this.targetBlocks.push(closestTargetPos);
+      } else {
+        // If closer to the source, attach it to the source. 
+        block.position = gridPosToPixelPos(closestSourcePos);
+        // this.sourceBlocks.push(closestSourcePos);
+        // this.targetBlocks.push(closestTargetPos);
+      }
+
+      // block.position = gridPosToPixelPos(closestSourcePos);
+      // this.blockGrid.push(closestSourcePos);
 
       this.lastMouseUpTime = Date.now();
-      redmetricsConnection.postEvent({
-        type: "movedBlock",
-        customData: {
-          startPosition: pointToArray(this.draggingBlockStartGridPosition),
-          endPosition: pointToArray(closestGridPos),
-          time: Date.now() - this.startDragTime,
-          newShape: convertShapeToArray(this.blockGrid)
-        }
-      });
+      //TODO Add this to database!
+
+      // redmetricsConnection.postEvent({
+      //   type: "movedBlock",
+      //   customData: {
+      //     startPosition: pointToArray(this.draggingBlockStartGridPosition),
+      //     endPosition: pointToArray(closestSourcePos),
+      //     time: Date.now() - this.startDragTime,
+      //     newShape: convertShapeToArray(this.blockGrid)
+      //   }
+      // });
     }
   }, {
-    key: "findFreeGridPositions",
-    value: function findFreeGridPositions() {
+    key: "findFreeGridPositionsSource",
+    value: function findFreeGridPositionsSource() {
       var ret = [];
       var _iteratorNormalCompletion5 = true;
       var _didIteratorError5 = false;
       var _iteratorError5 = undefined;
 
       try {
-        for (var _iterator5 = this.blockGrid[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+        for (var _iterator5 = this.sourceBlocks[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
           var b = _step5.value;
 
           ret.push(new PIXI.Point(b.x - 1, b.y));
@@ -9166,7 +9227,42 @@ var BlockScene = function (_util$Entity3) {
       }
 
       ret = uniq(ret);
-      return difference(ret, this.blockGrid);
+      return difference(ret, this.sourceBlocks);
+    }
+  }, {
+    key: "findFreeGridPositionsTarget",
+    value: function findFreeGridPositionsTarget() {
+      var ret = [];
+      var _iteratorNormalCompletion6 = true;
+      var _didIteratorError6 = false;
+      var _iteratorError6 = undefined;
+
+      try {
+        for (var _iterator6 = this.targetBlocks[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+          var b = _step6.value;
+
+          ret.push(new PIXI.Point(b.x - 1, b.y));
+          ret.push(new PIXI.Point(b.x + 1, b.y));
+          ret.push(new PIXI.Point(b.x, b.y - 1));
+          ret.push(new PIXI.Point(b.x, b.y + 1));
+        }
+      } catch (err) {
+        _didIteratorError6 = true;
+        _iteratorError6 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion6 && _iterator6.return) {
+            _iterator6.return();
+          }
+        } finally {
+          if (_didIteratorError6) {
+            throw _iteratorError6;
+          }
+        }
+      }
+
+      ret = uniq(ret);
+      return difference(ret, this.targetBlocks);
     }
   }, {
     key: "blocksAreNeighbors",
@@ -9273,27 +9369,27 @@ var BlockScene = function (_util$Entity3) {
     key: "updateGalleryShape",
     value: function updateGalleryShape(galleryShape) {
       this.galleryLayer.removeChildren();
-      var _iteratorNormalCompletion6 = true;
-      var _didIteratorError6 = false;
-      var _iteratorError6 = undefined;
+      var _iteratorNormalCompletion7 = true;
+      var _didIteratorError7 = false;
+      var _iteratorError7 = undefined;
 
       try {
-        for (var _iterator6 = galleryShape[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
-          var block = _step6.value;
+        for (var _iterator7 = galleryShape[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+          var block = _step7.value;
 
           this.galleryLayer.addChild(makeSourceShape(block));
         }
       } catch (err) {
-        _didIteratorError6 = true;
-        _iteratorError6 = err;
+        _didIteratorError7 = true;
+        _iteratorError7 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion6 && _iterator6.return) {
-            _iterator6.return();
+          if (!_iteratorNormalCompletion7 && _iterator7.return) {
+            _iterator7.return();
           }
         } finally {
-          if (_didIteratorError6) {
-            throw _iteratorError6;
+          if (_didIteratorError7) {
+            throw _iteratorError7;
           }
         }
       }
@@ -9364,27 +9460,27 @@ var GalleryScene = function (_util$Entity4) {
         pageContainer.addChild(galleryParent);
 
         var galleryLayer = new PIXI.Container();
-        var _iteratorNormalCompletion7 = true;
-        var _didIteratorError7 = false;
-        var _iteratorError7 = undefined;
+        var _iteratorNormalCompletion8 = true;
+        var _didIteratorError8 = false;
+        var _iteratorError8 = undefined;
 
         try {
-          for (var _iterator7 = galleryShapes[i][Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-            var block = _step7.value;
+          for (var _iterator8 = galleryShapes[i][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+            var block = _step8.value;
 
             galleryLayer.addChild(makeSourceShape(block));
           }
         } catch (err) {
-          _didIteratorError7 = true;
-          _iteratorError7 = err;
+          _didIteratorError8 = true;
+          _iteratorError8 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion7 && _iterator7.return) {
-              _iterator7.return();
+            if (!_iteratorNormalCompletion8 && _iterator8.return) {
+              _iterator8.return();
             }
           } finally {
-            if (_didIteratorError7) {
-              throw _iteratorError7;
+            if (_didIteratorError8) {
+              throw _iteratorError8;
             }
           }
         }
@@ -9527,27 +9623,27 @@ var ResultsScene = function (_util$Entity5) {
         }
 
         var searchScorePercent = Math.round(Math.abs(searchScore) * 100);
-        var _iteratorNormalCompletion8 = true;
-        var _didIteratorError8 = false;
-        var _iteratorError8 = undefined;
+        var _iteratorNormalCompletion9 = true;
+        var _didIteratorError9 = false;
+        var _iteratorError9 = undefined;
 
         try {
-          for (var _iterator8 = document.getElementsByClassName("searchScorePercent")[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-            var el = _step8.value;
+          for (var _iterator9 = document.getElementsByClassName("searchScorePercent")[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+            var el = _step9.value;
 
             el.innerText = searchScorePercent;
           }
         } catch (err) {
-          _didIteratorError8 = true;
-          _iteratorError8 = err;
+          _didIteratorError9 = true;
+          _iteratorError9 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion8 && _iterator8.return) {
-              _iterator8.return();
+            if (!_iteratorNormalCompletion9 && _iterator9.return) {
+              _iterator9.return();
             }
           } finally {
-            if (_didIteratorError8) {
-              throw _iteratorError8;
+            if (_didIteratorError9) {
+              throw _iteratorError9;
             }
           }
         }
@@ -9627,28 +9723,28 @@ app$1.loader.add(["images/slider.png"]).on("progress", loadProgressHandler).load
 
 // Load RedMetrics
 function showRedMetricsStatus(status) {
-  var _iteratorNormalCompletion9 = true;
-  var _didIteratorError9 = false;
-  var _iteratorError9 = undefined;
+  var _iteratorNormalCompletion10 = true;
+  var _didIteratorError10 = false;
+  var _iteratorError10 = undefined;
 
   try {
-    for (var _iterator9 = document.getElementById("redmetrics-connection-status").children[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-      var child = _step9.value;
+    for (var _iterator10 = document.getElementById("redmetrics-connection-status").children[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+      var child = _step10.value;
 
       var shouldShow = child.id === "redmetrics-connection-status-" + status;
       child.style.display = shouldShow ? "block" : "none";
     }
   } catch (err) {
-    _didIteratorError9 = true;
-    _iteratorError9 = err;
+    _didIteratorError10 = true;
+    _iteratorError10 = err;
   } finally {
     try {
-      if (!_iteratorNormalCompletion9 && _iterator9.return) {
-        _iterator9.return();
+      if (!_iteratorNormalCompletion10 && _iterator10.return) {
+        _iterator10.return();
       }
     } finally {
-      if (_didIteratorError9) {
-        throw _iteratorError9;
+      if (_didIteratorError10) {
+        throw _iteratorError10;
       }
     }
   }

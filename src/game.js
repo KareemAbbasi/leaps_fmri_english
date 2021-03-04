@@ -49,15 +49,16 @@ function pixelPosToGridPos(pixelPos) {
 
 function drawBlock(graphics, fillColor) {
   graphics.beginFill(fillColor);
+  graphics.fillColor = fillColor;
   graphics.lineStyle(4, 0x000000, 1);
   graphics.drawRect(-BLOCK_WIDTH/2, -BLOCK_WIDTH/2, BLOCK_WIDTH, BLOCK_WIDTH);
   graphics.endFill();
 }
 
 // Creates blocks using different colors. For the source
-function makeSourceShape(gridPos, number) {
+function makeSourceShape(gridPos, color) {
   let rect = new PIXI.Graphics();
-  drawBlock(rect, SOURCE_COLORS[number]);
+  drawBlock(rect, color);
 
   // console.log("Grid position is " + String(gridPosToPixelPos(gridPos).x) + " " + String(gridPosToPixelPos(gridPosToPixelPos).y));
   rect.position = gridPosToPixelPos(gridPos);
@@ -84,6 +85,15 @@ function pointToArray(p) {
 
 function calculateSearchScore(shapeCount, timePlayed) {
   return Math.min(2 * ((1/88) * shapeCount * (720000 / timePlayed) - 0.5), 1);
+}
+
+function shuffle(array) {
+  var res = array;
+  for (let i = res.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [res[i], res[j]] = [res[j], res[i]];
+  }
+  return res;
 }
 
 function toggleFullscreen() {
@@ -317,16 +327,16 @@ class BlockScene extends util.Entity {
     sceneLayer.addChild(this.container);
 
     // This is the gallery box in the top right corner of the screen.
-    const galleryBg = new PIXI.Graphics();
-    galleryBg.beginFill(0x808080);
-    galleryBg.lineColor = 0xffffff;
-    galleryBg.lineWidth = 1;
-    galleryBg.drawRect(0, 0, 150, 150);
-    galleryBg.endFill();
-    galleryBg.position.set(800, 10);
-    galleryBg.on("pointerdown", this.onAddShape, this);
-    galleryBg.interactive = true;
-    this.container.addChild(galleryBg);
+    // const galleryBg = new PIXI.Graphics();
+    // galleryBg.beginFill(0x808080);
+    // galleryBg.lineColor = 0xffffff;
+    // galleryBg.lineWidth = 1;
+    // galleryBg.drawRect(0, 0, 150, 150);
+    // galleryBg.endFill();
+    // galleryBg.position.set(800, 10);
+    // galleryBg.on("pointerdown", this.onAddShape, this);
+    // galleryBg.interactive = true;
+    // this.container.addChild(galleryBg);
 
     this.blocksContainer = new PIXI.Container();
     this.container.addChild(this.blocksContainer);
@@ -368,9 +378,11 @@ class BlockScene extends util.Entity {
     this.sourceBlocks = [];
     this.targetBlocks = [];
 
+    this.sourceColors = shuffle(SOURCE_COLORS);
+    // Source blocks
     for (let i = 0; i < 3; i++) {
-      const pos = new PIXI.Point(5, i);
-      let rect = makeSourceShape(pos, i);
+      const pos = new PIXI.Point(0, i);
+      let rect = makeSourceShape(pos, this.sourceColors[i]);
 
       rect.buttonMode = true;
       rect.on("pointerdown", this.onPointerDown.bind(this))
@@ -382,15 +394,17 @@ class BlockScene extends util.Entity {
       this.blocksContainer.addChild(rect);
     }
 
+    // Target blocks
     for (let i = 0; i < 3; i++) {
-      const pos = new PIXI.Point(0, i);
+      const pos = new PIXI.Point(11 , i - 4);
       let rect = makeTargetShape(pos);
 
-      rect.buttonMode = true;
+      // TODO - for now target blocks cannot be chosen and dragged around. 
+      // rect.buttonMode = true;
       // rect.on("pointerdown", this.onPointerDown.bind(this))
       // rect.on("pointerup", this.onPointerUp.bind(this))
       // rect.on("pointermove", this.onPointerMove.bind(this))
-      rect.interactive = true;
+      rect.interactive = false;
 
       this.targetBlocks.push(pos);
       this.blocksContainer.addChild(rect);
@@ -398,13 +412,13 @@ class BlockScene extends util.Entity {
 
     this.updateBlocks();
 
-    const galleryParent = new PIXI.Container();;
-    galleryParent.position.set(875, 85);
-    galleryParent.scale.set(0.3);
-    this.container.addChild(galleryParent);
+    // const galleryParent = new PIXI.Container();;
+    // galleryParent.position.set(875, 85);
+    // galleryParent.scale.set(0.3);
+    // this.container.addChild(galleryParent);
 
-    this.galleryLayer = new PIXI.Container();
-    galleryParent.addChild(this.galleryLayer);
+    // this.galleryLayer = new PIXI.Container();
+    // galleryParent.addChild(this.galleryLayer);
 
     // HTML
     document.getElementById("blocks-gui").style.display = "block";
@@ -528,14 +542,30 @@ class BlockScene extends util.Entity {
     this.draggingPointerId = e.data.pointerId; // Keep track of which finger is used 
     this.draggingBlockStartGridPosition = pixelPosToGridPos(this.draggingBlock.position);
     this.startDragTime = Date.now();
+    
+    const blockColor = this.draggingBlock.graphicsData[0].fillColor;
+    if (blockColor != parseInt(String(TARGET_COLOR))) {
+      //TODO You have some cleaning up to do.
+      alert("You chose the wrong color!");
+      console.log("Chosen color decimals is: " + String(blockColor));
+      this.draggingBlock = null;
+      return;
+    }
+    // if (blockColor == SOURCE_COLORS_DEC[0] || blockColor == SOURCE_COLORS_DEC[2]) {
+    //   alert("You chose the wrong color!");
+    //   this.draggingBlock = null;
+    // }
+    console.log(this.draggingBlock)
 
     // Reorder so this block is on top
+    // this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
     this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
 
-    const gridPos = pixelPosToGridPos(this.draggingBlock.position);
-    this.blockGrid = util.removeFromArray(this.blockGrid, gridPos);
 
-    this.highlightedBlocks.add(this.draggingBlock);
+    const gridPos = pixelPosToGridPos(this.draggingBlock.position);
+    this.sourceBlocks = util.removeFromArray(this.sourceBlocks, gridPos);
+
+    // this.highlightedBlocks.add(this.draggingBlock);
 
     // Disable html buttons
     document.getElementById("html-layer").className = "no-pointer-events";
@@ -546,7 +576,7 @@ class BlockScene extends util.Entity {
 
     this.dropBlock(this.draggingBlock, this.draggingBlock.position);
 
-    this.unhighlightBlock(this.draggingBlock);
+    // this.unhighlightBlock(this.draggingBlock);
 
     this.draggingBlock = null;
     this.draggingPointerId = null;
@@ -600,43 +630,91 @@ class BlockScene extends util.Entity {
       // } else {
       //   blockGraphic.interactive = false;
       // }
-      blockGraphic.interactive = false;
+      // blockGraphic.interactive = true;
+      return 
     }
   }
 
   dropBlock(block, droppedPos) {
     // Find closest grid position
-    const gridPos = pixelPosToGridPos(droppedPos);
+    const droppedGridPos = pixelPosToGridPos(droppedPos);
 
-    const freeGridPositions = this.findFreeGridPositions();
-    const closestGridPos = _.min(freeGridPositions, freePos => util.distance(gridPos, freePos));
+    const freeGridPositionsSource = this.findFreeGridPositionsSource();
+    const closestSourcePos = _.min(freeGridPositionsSource, freePos => util.distance(droppedGridPos, freePos));
     
-    block.position = gridPosToPixelPos(closestGridPos);
-    this.blockGrid.push(closestGridPos);
+    const freeGridPositionsTarget = this. findFreeGridPositionsTarget();
+    const closestTargetPos = _.min(freeGridPositionsTarget, freePos => util.distance(droppedGridPos, freePos));
+
+    // Check if it is closer to the target, closer to who?
+    const distanceToTarget = util.distance(droppedGridPos, closestTargetPos);
+    const distanceToSource = util.distance(droppedGridPos, closestSourcePos);
+
+    const closerToTarget = distanceToTarget < distanceToSource;
+    
+    // This means the user has to drop in the area of one block around the target.
+    const BOUNDARY_LIMIT = 1;
+    
+    //TODO remove
+    console.log("Distance to target " + String(distanceToTarget));
+    console.log("Boundary limit is: " + String(BOUNDARY_LIMIT));
+    if (closerToTarget && (distanceToTarget <= BOUNDARY_LIMIT)) {
+      // Check if it is in the boundary of the target or if it is far.
+      // If closer to the target and within the boundary, attach it to the closest box.
+      // If closer to the target but not in the allowed boundary, attach it to the source
+      block.position = gridPosToPixelPos(closestTargetPos);
+      
+      // this.targetBlocks.push(closestTargetPos);
+    } else {
+      // If closer to the source, attach it to the source. 
+      block.position = gridPosToPixelPos(closestSourcePos);
+      // this.sourceBlocks.push(closestSourcePos);
+      // this.targetBlocks.push(closestTargetPos);
+
+    }
+
+
+    // block.position = gridPosToPixelPos(closestSourcePos);
+    // this.blockGrid.push(closestSourcePos);
 
     this.lastMouseUpTime = Date.now();
-    redmetricsConnection.postEvent({
-      type: "movedBlock",
-      customData: {
-        startPosition: pointToArray(this.draggingBlockStartGridPosition),
-        endPosition: pointToArray(closestGridPos),
-        time: Date.now() - this.startDragTime,
-        newShape: convertShapeToArray(this.blockGrid)
-      }
-    });
+    //TODO Add this to database!
+
+    // redmetricsConnection.postEvent({
+    //   type: "movedBlock",
+    //   customData: {
+    //     startPosition: pointToArray(this.draggingBlockStartGridPosition),
+    //     endPosition: pointToArray(closestSourcePos),
+    //     time: Date.now() - this.startDragTime,
+    //     newShape: convertShapeToArray(this.blockGrid)
+    //   }
+    // });
   }
 
-  findFreeGridPositions() {
+  findFreeGridPositionsSource() {
     var ret = [];
-    for(let b of this.blockGrid) {
+    for(let b of this.sourceBlocks) {
       ret.push(new PIXI.Point(b.x - 1, b.y));
       ret.push(new PIXI.Point(b.x + 1, b.y));
       ret.push(new PIXI.Point(b.x, b.y - 1));
       ret.push(new PIXI.Point(b.x, b.y + 1));
     }
     ret = util.uniq(ret);
-    return util.difference(ret, this.blockGrid);
+    return util.difference(ret, this.sourceBlocks);
   }
+
+  findFreeGridPositionsTarget() {
+    var ret = [];
+    for(let b of this.targetBlocks) {
+      ret.push(new PIXI.Point(b.x - 1, b.y));
+      ret.push(new PIXI.Point(b.x + 1, b.y));
+      ret.push(new PIXI.Point(b.x, b.y - 1));
+      ret.push(new PIXI.Point(b.x, b.y + 1));
+    }
+    ret = util.uniq(ret);
+    return util.difference(ret, this.targetBlocks);
+  }
+
+
 
   blocksAreNeighbors(a, b) {
     const x = Math.abs(a.x - b.x); 
