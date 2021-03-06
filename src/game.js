@@ -639,18 +639,20 @@ class BlockScene extends util.Entity {
       // If closer to the target but not in the allowed boundary, attach it to the source
       
       block.position = gridPosToPixelPos(closestTargetPos);
-      console.log('targets');
-      console.log(this.targetPositions);
+      
       if (!util.contains(this.targetPositions, closestTargetPos)) {
         // alert("wrong position");
         console.log('not correct target!');
+        document.getElementById("wrong-position-message").style.display = "block";
       } else {
+        document.getElementById("correct-message").style.display = "block";
         console.log('CORRECT TARGET!');
       }
       // this.targetBlocks.push(closestTargetPos);
     } else {
       // If closer to the source, attach it to the source. 
       block.position = gridPosToPixelPos(closestSourcePos);
+      document.getElementById("early-release-message").style.display = "block";
       // this.sourceBlocks.push(closestSourcePos);
       // this.targetBlocks.push(closestTargetPos);
 
