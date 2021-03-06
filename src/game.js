@@ -326,100 +326,7 @@ class BlockScene extends util.Entity {
     this.container = new PIXI.Container();
     sceneLayer.addChild(this.container);
 
-    // This is the gallery box in the top right corner of the screen.
-    // const galleryBg = new PIXI.Graphics();
-    // galleryBg.beginFill(0x808080);
-    // galleryBg.lineColor = 0xffffff;
-    // galleryBg.lineWidth = 1;
-    // galleryBg.drawRect(0, 0, 150, 150);
-    // galleryBg.endFill();
-    // galleryBg.position.set(800, 10);
-    // galleryBg.on("pointerdown", this.onAddShape, this);
-    // galleryBg.interactive = true;
-    // this.container.addChild(galleryBg);
-
-    this.blocksContainer = new PIXI.Container();
-    this.container.addChild(this.blocksContainer);
-
-    // Make blocks
-    // this.blockGrid = [];
-    // for(let i = 0; i < 10; i++) {
-    //   const gridPos = new PIXI.Point(i, 10);
-    //   this.blockGrid.push(gridPos);
-
-    //   // returns a PIXI.Graphics object in the correct position.
-    //   let rect = makeBlockShape(gridPos);
-
-    //   // If enabled, the mouse cursor uses the pointer behavoir when hovered over the object.
-    //   rect.buttonMode = true;
-    //   rect.on("pointerdown", this.onPointerDown.bind(this))
-    //   rect.on("pointerup", this.onPointerUp.bind(this))
-    //   rect.on("pointermove", this.onPointerMove.bind(this))
-    //   rect.interactive = true;
-    //   this.blocksContainer.addChild(rect);
-    // }
-
-    // for(let i = 0; i < 10; i++) {
-    //   const gridPos = new PIXI.Point(i, 0);
-    //   this.blockGrid.push(gridPos);
-
-    //   // returns a PIXI.Graphics object in the correct position.
-    //   let rect = makeBlockShape(gridPos);
-
-    //   // If enabled, the mouse cursor uses the pointer behavoir when hovered over the object.
-    //   rect.buttonMode = true;
-    //   rect.on("pointerdown", this.onPointerDown.bind(this))
-    //   rect.on("pointerup", this.onPointerUp.bind(this))
-    //   rect.on("pointermove", this.onPointerMove.bind(this))
-    //   rect.interactive = true;
-    //   this.blocksContainer.addChild(rect);
-    // }
-
-    this.sourceBlocks = [];
-    this.targetBlocks = [];
-
-    this.sourceColors = shuffle(SOURCE_COLORS);
-    // Source blocks
-    for (let i = 0; i < 3; i++) {
-      const pos = new PIXI.Point(0, i);
-      let rect = makeSourceShape(pos, this.sourceColors[i]);
-
-      rect.buttonMode = true;
-      rect.on("pointerdown", this.onPointerDown.bind(this))
-      rect.on("pointerup", this.onPointerUp.bind(this))
-      rect.on("pointermove", this.onPointerMove.bind(this))
-      rect.interactive = true;
-
-      this.sourceBlocks.push(pos);
-      this.blocksContainer.addChild(rect);
-    }
-
-    // Target blocks
-    for (let i = 0; i < 3; i++) {
-      const pos = new PIXI.Point(11 , i - 4);
-      let rect = makeTargetShape(pos);
-
-      // TODO - for now target blocks cannot be chosen and dragged around. 
-      // rect.buttonMode = true;
-      // rect.on("pointerdown", this.onPointerDown.bind(this))
-      // rect.on("pointerup", this.onPointerUp.bind(this))
-      // rect.on("pointermove", this.onPointerMove.bind(this))
-      rect.interactive = false;
-
-      this.targetBlocks.push(pos);
-      this.blocksContainer.addChild(rect);
-    }
-
-    this.updateBlocks();
-
-    // const galleryParent = new PIXI.Container();;
-    // galleryParent.position.set(875, 85);
-    // galleryParent.scale.set(0.3);
-    // this.container.addChild(galleryParent);
-
-    // this.galleryLayer = new PIXI.Container();
-    // galleryParent.addChild(this.galleryLayer);
-
+    this.initBlocks();
     // HTML
     document.getElementById("blocks-gui").style.display = "block";
 
@@ -439,6 +346,70 @@ class BlockScene extends util.Entity {
     doneAddingButton.addEventListener("click", this.onAttemptDone);
     doneAddingButton.disabled = !allowEarlyExit;
   }
+
+  initBlocks() {
+    this.blocksContainer = new PIXI.Container();
+    this.container.addChild(this.blocksContainer);
+
+    this.sourceBlocks = [];
+    this.targetBlocks = [];
+
+    this.sourceColors = shuffle(SOURCE_COLORS);
+
+    // All the Math.randoms are to choose a different starting point in each trial.
+    const isRow = (Math.random() < 0.5);
+    var p = [];
+    if (isRow) {
+      p = [util.randomInt(0, 10), util.randomInt(3, 4)];
+    } else {
+      p = [util.randomInt(3, 11), util.randomInt(0, 4)]; 
+    }
+
+    const sourceFirst = (Math.random() < 0.5);
+
+    // Source blocks
+    for (let i = 0; i < 3; i++) {
+      var randomPoint = [];
+      if (isRow) {
+        randomPoint = (sourceFirst) ? [i, 0] : [i + p[0], p[1]];
+      } else {
+        randomPoint = (sourceFirst) ? [0, i] : [p[0], i + p[1]];
+      }
+      const pos = new PIXI.Point(randomPoint[0], randomPoint[1]);
+      let rect = makeSourceShape(pos, this.sourceColors[i]);
+
+      rect.buttonMode = true;
+      rect.on("pointerdown", this.onPointerDown.bind(this))
+      rect.on("pointerup", this.onPointerUp.bind(this))
+      rect.on("pointermove", this.onPointerMove.bind(this))
+      rect.interactive = true;
+
+      this.sourceBlocks.push(pos);
+      this.blocksContainer.addChild(rect);
+    }
+
+    // Target blocks
+    for (let i = 0; i < 3; i++) {
+      var randomPoint = [];
+      if (isRow) {
+        randomPoint = (!sourceFirst) ? [i, 0] : [i + p[0], p[1]];
+      } else {
+        randomPoint = (!sourceFirst) ? [0, i] : [p[0], i + p[1]];
+      }
+
+      // const p = [11, i - 4];
+      const pos = new PIXI.Point(randomPoint[0], randomPoint[1]);
+      let rect = makeTargetShape(pos);
+
+      rect.interactive = false;
+
+      this.targetBlocks.push(pos);
+      this.blocksContainer.addChild(rect);
+    }
+
+    this.updateBlocks();
+  }
+
 
   resetBlocks() {
     this.container.removeChild(this.blocksContainer);
@@ -546,17 +517,13 @@ class BlockScene extends util.Entity {
     const blockColor = this.draggingBlock.graphicsData[0].fillColor;
     if (blockColor != parseInt(String(TARGET_COLOR))) {
       //TODO You have some cleaning up to do.
-      alert("You chose the wrong color!");
+      // alert("You chose the wrong color!");
+      document.getElementById("wrong-color-message").style.display = "block";
       console.log("Chosen color decimals is: " + String(blockColor));
       this.draggingBlock = null;
       return;
     }
-    // if (blockColor == SOURCE_COLORS_DEC[0] || blockColor == SOURCE_COLORS_DEC[2]) {
-    //   alert("You chose the wrong color!");
-    //   this.draggingBlock = null;
-    // }
-    console.log(this.draggingBlock)
-
+  
     // Reorder so this block is on top
     // this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
     this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
