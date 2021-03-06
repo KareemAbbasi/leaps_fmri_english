@@ -354,12 +354,14 @@ class BlockScene extends util.Entity {
     this.sourceBlocks = [];
     this.targetBlocks = [];
 
+    this.targetPositions = [];
+
     this.sourceColors = shuffle(SOURCE_COLORS);
 
     // All the Math.randoms are to choose a different starting point in each trial.
-    const isRow = (Math.random() < 0.5);
+    this.isRow = (Math.random() < 0.5);
     var p = [];
-    if (isRow) {
+    if (this.isRow) {
       p = [util.randomInt(0, 10), util.randomInt(3, 4)];
     } else {
       p = [util.randomInt(3, 11), util.randomInt(0, 4)]; 
@@ -370,7 +372,7 @@ class BlockScene extends util.Entity {
     // Source blocks
     for (let i = 0; i < 3; i++) {
       var randomPoint = [];
-      if (isRow) {
+      if (this.isRow) {
         randomPoint = (sourceFirst) ? [i, 0] : [i + p[0], p[1]];
       } else {
         randomPoint = (sourceFirst) ? [0, i] : [p[0], i + p[1]];
@@ -391,7 +393,7 @@ class BlockScene extends util.Entity {
     // Target blocks
     for (let i = 0; i < 3; i++) {
       var randomPoint = [];
-      if (isRow) {
+      if (this.isRow) {
         randomPoint = (!sourceFirst) ? [i, 0] : [i + p[0], p[1]];
       } else {
         randomPoint = (!sourceFirst) ? [0, i] : [p[0], i + p[1]];
@@ -410,6 +412,11 @@ class BlockScene extends util.Entity {
     this.updateBlocks();
   }
 
+  disableBlocksInteractivity(newInteractivity) {
+    for (let block of this.blocksContainer.children) {
+      block.interactive = newInteractivity;
+    }
+  }
 
   resetBlocks() {
     this.container.removeChild(this.blocksContainer);
@@ -521,9 +528,10 @@ class BlockScene extends util.Entity {
       document.getElementById("wrong-color-message").style.display = "block";
       console.log("Chosen color decimals is: " + String(blockColor));
       this.draggingBlock = null;
+      this.disableBlocksInteractivity(false);
       return;
     }
-  
+    
     // Reorder so this block is on top
     // this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
     this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
@@ -609,9 +617,10 @@ class BlockScene extends util.Entity {
     const freeGridPositionsSource = this.findFreeGridPositionsSource();
     const closestSourcePos = _.min(freeGridPositionsSource, freePos => util.distance(droppedGridPos, freePos));
     
-    const freeGridPositionsTarget = this. findFreeGridPositionsTarget();
+    const freeGridPositionsTarget = this.findFreeGridPositionsTarget();
+    console.log(freeGridPositionsTarget);
     const closestTargetPos = _.min(freeGridPositionsTarget, freePos => util.distance(droppedGridPos, freePos));
-
+    console.log(closestTargetPos);
     // Check if it is closer to the target, closer to who?
     const distanceToTarget = util.distance(droppedGridPos, closestTargetPos);
     const distanceToSource = util.distance(droppedGridPos, closestSourcePos);
@@ -628,8 +637,16 @@ class BlockScene extends util.Entity {
       // Check if it is in the boundary of the target or if it is far.
       // If closer to the target and within the boundary, attach it to the closest box.
       // If closer to the target but not in the allowed boundary, attach it to the source
-      block.position = gridPosToPixelPos(closestTargetPos);
       
+      block.position = gridPosToPixelPos(closestTargetPos);
+      console.log('targets');
+      console.log(this.targetPositions);
+      if (!util.contains(this.targetPositions, closestTargetPos)) {
+        // alert("wrong position");
+        console.log('not correct target!');
+      } else {
+        console.log('CORRECT TARGET!');
+      }
       // this.targetBlocks.push(closestTargetPos);
     } else {
       // If closer to the source, attach it to the source. 
@@ -671,11 +688,28 @@ class BlockScene extends util.Entity {
 
   findFreeGridPositionsTarget() {
     var ret = [];
+    var i = 0;
+    this.targetPositions = [];
     for(let b of this.targetBlocks) {
       ret.push(new PIXI.Point(b.x - 1, b.y));
       ret.push(new PIXI.Point(b.x + 1, b.y));
       ret.push(new PIXI.Point(b.x, b.y - 1));
       ret.push(new PIXI.Point(b.x, b.y + 1));
+
+      if (i == 0) {
+        if (this.isRow) {
+          this.targetPositions.push(new PIXI.Point(b.x - 1, b.y));
+        } else {
+          this.targetPositions.push(new PIXI.Point(b.x, b.y - 1));
+        }
+      } else if (i == 2) {
+        if (this.isRow) {
+          this.targetPositions.push(new PIXI.Point(b.x + 1, b.y));
+        } else {
+          this.targetPositions.push(new PIXI.Point(b.x, b.y + 1));
+        }
+      }
+      i++;
     }
     ret = util.uniq(ret);
     return util.difference(ret, this.targetBlocks);
