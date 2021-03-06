@@ -341,15 +341,18 @@ class BlockScene extends util.Entity {
     this.cancelModal = this.cancelModal.bind(this);
     this.confirmDone = this.confirmDone.bind(this);
     this.onKeyUp = this.onKeyUp.bind(this);
-    document.getElementById("add-shape").addEventListener("click", this.onAddShape);
+    this.nextTrial = this.nextTrial.bind(this);
+    this.resetTrial = this.resetTrial.bind(this);
+    document.getElementById("continue-btn").addEventListener("click", this.nextTrial);
+    document.getElementById("reset-btn").addEventListener("click", this.resetTrial);
     document.getElementById("modal-confirm-cancel-button").addEventListener("click", this.cancelModal);
     document.getElementById("modal-confirm-done-button").addEventListener("click", this.confirmDone);
     document.getElementById("pixi-canvas").addEventListener("keyup", this.onKeyUp);
 
     // Don't allow player to leave early if allowEarlyExit is false
-    const doneAddingButton = document.getElementById("done-adding");
-    doneAddingButton.addEventListener("click", this.onAttemptDone);
-    doneAddingButton.disabled = !allowEarlyExit;
+    // const doneAddingButton = document.getElementById("done-adding");
+    // doneAddingButton.addEventListener("click", this.onAttemptDone);
+    // doneAddingButton.disabled = !allowEarlyExit;
   }
 
   generateRandomVariables() {

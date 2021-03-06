@@ -127,9 +127,16 @@ a {
   left: 405px;
 }
 
-#done-adding {
+#continue-btn {
+  background-color: green;
   position: absolute;
   top: 420px;
+  right: 10px;
+}
+
+#reset-btn {
+  position: absolute;
+  top: 480px;
   right: 10px;
 }
 
