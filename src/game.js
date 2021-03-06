@@ -7,14 +7,14 @@ const EPSILON = 0.001;
 const BLOCK_WIDTH = 50;
 const MAX_SEARCH_TIME = 12 * 60 * 1000;
 const BLOCK_COLOR = 0x81e700;
-
-const SOURCE_COLORS = [0x92D051, 0xFCC003, 0x5B9BD5];
-const TARGET_COLOR = 0xFCC003;
+// 0xD7191C, 0xFDAE61, 0xABD9E9
+const SOURCE_COLORS = [0xD7191C, 0xFDAE61, 0xABD9E9];
+const TARGET_COLOR = 0xFDAE61;
 
 const HIGHLIGHTED_BLOCK_COLOR = 0x59853b;
 const DRAG_HIGHLIGHT_PERIOD = 500;
 const RED_METRICS_HOST = "api.creativeforagingtask.com";
-const RED_METRICS_GAME_VERSION = "b13751f1-637f-411b-8ce2-29b1b24fddf0";
+const RED_METRICS_GAME_VERSION = "";
 
 let letsPlayScene = false;
 
@@ -127,9 +127,9 @@ function setup() {
 
   app.ticker.add(update);
 
-  redmetricsConnection.postEvent({
-    type: "start"
-  });
+  // redmetricsConnection.postEvent({
+  //   type: "start"
+  // });
 
   if(util.supportsFullscreen(document.getElementById("game-parent"))) {
     document.getElementById("fullscreen-button").addEventListener("click", toggleFullscreen);
@@ -152,9 +152,9 @@ function changeScene(newSceneName) {
   currentScene.setup();
   currentScene.update(0);
 
-  redmetricsConnection.postEvent({
-    type: metricsStartSceneEvents[newSceneName]
-  });
+  // redmetricsConnection.postEvent({
+  //   type: metricsStartSceneEvents[newSceneName]
+  // });
 }
 
 function update(timeScale)
@@ -199,7 +199,7 @@ class IntroScene extends util.Entity {
 
   onDone() {
     playerData.customData.userProvidedId = document.getElementById("user-provided-id").value;
-    redmetricsConnection.updatePlayer(playerData);
+    // redmetricsConnection.updatePlayer(playerData);
 
     this.done = true;
   }
@@ -323,10 +323,15 @@ class BlockScene extends util.Entity {
     this.timesUp = false;
     this.changedShape = true;
 
+    this.numberTrials = numTrials;
+    this.currentTrial = 1;
+    this.canChangeTrial = false;
+
     this.container = new PIXI.Container();
     sceneLayer.addChild(this.container);
 
-    this.initBlocks();
+    this.generateRandomVariables();
+    this.resetTrial();
     // HTML
     document.getElementById("blocks-gui").style.display = "block";
 
@@ -347,7 +352,29 @@ class BlockScene extends util.Entity {
     doneAddingButton.disabled = !allowEarlyExit;
   }
 
-  initBlocks() {
+  generateRandomVariables() {
+    // All the Math.randoms are to choose a different starting point in each trial.
+    this.isRow = (Math.random() < 0.5);
+    this.p = [];
+    if (this.isRow) {
+      this.p = [util.randomInt(0, 10), util.randomInt(3, 4)];
+    } else {
+      this.p = [util.randomInt(3, 11), util.randomInt(0, 4)]; 
+    }
+
+    this.sourceFirst = (Math.random() < 0.5);
+    this.sourceColors = shuffle(SOURCE_COLORS);
+
+  }
+
+  resetTrial() {
+    this.container.removeChild(this.blocksContainer);
+    this.canChangeTrial = false;
+    document.getElementById("wrong-color-message").style.display = "none";
+    document.getElementById("wrong-position-message").style.display = "none";
+    document.getElementById("correct-message").style.display = "none";
+    document.getElementById("early-release-message").style.display = "none";
+
     this.blocksContainer = new PIXI.Container();
     this.container.addChild(this.blocksContainer);
 
@@ -356,26 +383,13 @@ class BlockScene extends util.Entity {
 
     this.targetPositions = [];
 
-    this.sourceColors = shuffle(SOURCE_COLORS);
-
-    // All the Math.randoms are to choose a different starting point in each trial.
-    this.isRow = (Math.random() < 0.5);
-    var p = [];
-    if (this.isRow) {
-      p = [util.randomInt(0, 10), util.randomInt(3, 4)];
-    } else {
-      p = [util.randomInt(3, 11), util.randomInt(0, 4)]; 
-    }
-
-    const sourceFirst = (Math.random() < 0.5);
-
     // Source blocks
     for (let i = 0; i < 3; i++) {
       var randomPoint = [];
       if (this.isRow) {
-        randomPoint = (sourceFirst) ? [i, 0] : [i + p[0], p[1]];
+        randomPoint = (this.sourceFirst) ? [i, 0] : [i + this.p[0], this.p[1]];
       } else {
-        randomPoint = (sourceFirst) ? [0, i] : [p[0], i + p[1]];
+        randomPoint = (this.sourceFirst) ? [0, i] : [this.p[0], i + this.p[1]];
       }
       const pos = new PIXI.Point(randomPoint[0], randomPoint[1]);
       let rect = makeSourceShape(pos, this.sourceColors[i]);
@@ -394,9 +408,9 @@ class BlockScene extends util.Entity {
     for (let i = 0; i < 3; i++) {
       var randomPoint = [];
       if (this.isRow) {
-        randomPoint = (!sourceFirst) ? [i, 0] : [i + p[0], p[1]];
+        randomPoint = (!this.sourceFirst) ? [i, 0] : [i + this.p[0], this.p[1]];
       } else {
-        randomPoint = (!sourceFirst) ? [0, i] : [p[0], i + p[1]];
+        randomPoint = (!this.sourceFirst) ? [0, i] : [this.p[0], i + this.p[1]];
       }
 
       // const p = [11, i - 4];
@@ -412,9 +426,19 @@ class BlockScene extends util.Entity {
     this.updateBlocks();
   }
 
-  disableBlocksInteractivity(newInteractivity) {
+  nextTrial() {
+    if (this.currentTrial < this.numberTrials && this.canChangeTrial) {
+      this.currentTrial += 1;
+      this.generateRandomVariables();
+      this.resetTrial();
+      this.canChangeTrial = false;
+    }
+  }
+
+
+  disableBlocksInteractivity() {
     for (let block of this.blocksContainer.children) {
-      block.interactive = newInteractivity;
+      block.interactive = false;
     }
   }
 
@@ -443,7 +467,6 @@ class BlockScene extends util.Entity {
   }
 
   removeBlocks() {
-    console.log('hello there!!!!!');
     this.container.removeChild(this.blocksContainer);
     this.blockGrid = [];
   }
@@ -526,9 +549,8 @@ class BlockScene extends util.Entity {
       //TODO You have some cleaning up to do.
       // alert("You chose the wrong color!");
       document.getElementById("wrong-color-message").style.display = "block";
-      console.log("Chosen color decimals is: " + String(blockColor));
       this.draggingBlock = null;
-      this.disableBlocksInteractivity(false);
+      this.disableBlocksInteractivity();
       return;
     }
     
@@ -539,6 +561,7 @@ class BlockScene extends util.Entity {
 
     const gridPos = pixelPosToGridPos(this.draggingBlock.position);
     this.sourceBlocks = util.removeFromArray(this.sourceBlocks, gridPos);
+    this.canChangeTrial = true;
 
     // this.highlightedBlocks.add(this.draggingBlock);
 
@@ -578,8 +601,10 @@ class BlockScene extends util.Entity {
     // If they pressed a number key, add the shape
     if (!isNaN(parseInt(e.key))) {
       var keyValue = parseInt(e.key);
-      if (keyValue == 1 || keyValue == 2) {
-        this.onAddShape();
+      if (keyValue == 1) {
+        this.nextTrial();
+      } else if (keyValue == 2) {
+        this.resetTrial();
       }
     }
   }
@@ -618,9 +643,7 @@ class BlockScene extends util.Entity {
     const closestSourcePos = _.min(freeGridPositionsSource, freePos => util.distance(droppedGridPos, freePos));
     
     const freeGridPositionsTarget = this.findFreeGridPositionsTarget();
-    console.log(freeGridPositionsTarget);
     const closestTargetPos = _.min(freeGridPositionsTarget, freePos => util.distance(droppedGridPos, freePos));
-    console.log(closestTargetPos);
     // Check if it is closer to the target, closer to who?
     const distanceToTarget = util.distance(droppedGridPos, closestTargetPos);
     const distanceToSource = util.distance(droppedGridPos, closestSourcePos);
@@ -631,8 +654,7 @@ class BlockScene extends util.Entity {
     const BOUNDARY_LIMIT = 1;
     
     //TODO remove
-    console.log("Distance to target " + String(distanceToTarget));
-    console.log("Boundary limit is: " + String(BOUNDARY_LIMIT));
+
     if (closerToTarget && (distanceToTarget <= BOUNDARY_LIMIT)) {
       // Check if it is in the boundary of the target or if it is far.
       // If closer to the target and within the boundary, attach it to the closest box.
@@ -642,11 +664,9 @@ class BlockScene extends util.Entity {
       
       if (!util.contains(this.targetPositions, closestTargetPos)) {
         // alert("wrong position");
-        console.log('not correct target!');
         document.getElementById("wrong-position-message").style.display = "block";
       } else {
         document.getElementById("correct-message").style.display = "block";
-        console.log('CORRECT TARGET!');
       }
       // this.targetBlocks.push(closestTargetPos);
     } else {
@@ -655,8 +675,8 @@ class BlockScene extends util.Entity {
       document.getElementById("early-release-message").style.display = "block";
       // this.sourceBlocks.push(closestSourcePos);
       // this.targetBlocks.push(closestTargetPos);
-
     }
+    this.disableBlocksInteractivity();
 
 
     // block.position = gridPosToPixelPos(closestSourcePos);
@@ -779,13 +799,13 @@ class BlockScene extends util.Entity {
     document.getElementById("add-shape").disabled = true;
     this.changedShape = false;
 
-    redmetricsConnection.postEvent({
-      type: "added shape to gallery",
-      customData: {
-        shape: convertShapeToArray(this.blockGrid),
-        timeSinceLastMouseUp: Date.now() - this.lastMouseUpTime
-      }
-    });
+    // redmetricsConnection.postEvent({
+    //   type: "added shape to gallery",
+    //   customData: {
+    //     shape: convertShapeToArray(this.blockGrid),
+    //     timeSinceLastMouseUp: Date.now() - this.lastMouseUpTime
+    //   }
+    // });
 
     this.emit("addedShape");
   }
@@ -909,14 +929,14 @@ class GalleryScene extends util.Entity {
 
     sendTrigger("chooseGalleryShape");
 
-    redmetricsConnection.postEvent({
-      type: "selected shape",
-      customData: {
-        shapeIndex: shapeIndex,
-        shape: convertShapeToArray(galleryShapes[shapeIndex]),
-        isSelected: isSelected,
-      }
-    });
+    // redmetricsConnection.postEvent({
+    //   type: "selected shape",
+    //   customData: {
+    //     shapeIndex: shapeIndex,
+    //     shape: convertShapeToArray(galleryShapes[shapeIndex]),
+    //     isSelected: isSelected,
+    //   }
+    // });
   }
 
   updateDoneButton() {
@@ -937,13 +957,13 @@ class GalleryScene extends util.Entity {
 
     sendTrigger("galleryDone");
 
-    redmetricsConnection.postEvent({
-      type: "done selection",
-      customData: {
-        shapeIndices: this.selectedIndexes,
-        shapes: selectedShapes
-      }
-    });
+    // redmetricsConnection.postEvent({
+    //   type: "done selection",
+    //   customData: {
+    //     shapeIndices: this.selectedIndexes,
+    //     shapes: selectedShapes
+    //   }
+    // });
 
     this.done = true;
   }
@@ -983,8 +1003,8 @@ class ResultsScene extends util.Entity {
         el.innerText = searchScorePercent;
       }
 
-      document.getElementById("code").innerText = redmetricsConnection.playerId ? 
-        redmetricsConnection.playerId.substr(-8) : "Unknown";
+      // document.getElementById("code").innerText = redmetricsConnection.playerId ? 
+        // redmetricsConnection.playerId.substr(-8) : "Unknown";
 
       // Setup followup link
       if(searchParams.has("followupLink")) {
@@ -1039,7 +1059,9 @@ const metricsStartSceneEvents = {
 const searchParams = new URLSearchParams(window.location.search);
 const allowEarlyExit = searchParams.get("allowEarlyExit") !== "false" && searchParams.get("allowEarlyExit") !== "0";
 const showResults = searchParams.get("showResults") !== "false" && searchParams.get("showResults") !== "0";
-
+const numTrials = (searchParams.get("trials")) ? parseInt(searchParams.get("trials")) : 30;
+console.log(searchParams.get("trials"));
+console.log(numTrials); 
 let galleryShapes = [];
 let searchScore = 0.33;
 let redmetricsConnection;
@@ -1078,17 +1100,17 @@ let playerData = {
   }
 };
 
-redmetricsConnection = redmetrics.prepareWriteConnection({ 
-  host: RED_METRICS_HOST,
-  gameVersionId: searchParams.get("gameVersion") || RED_METRICS_GAME_VERSION,
-  player: playerData
-});
-redmetricsConnection.connect().then(function() {
-  console.log("Connected to the RedMetrics server");
-  showRedMetricsStatus("connected");
-}).catch(function() {
-  showRedMetricsStatus("disconnected");
-});
+// redmetricsConnection = redmetrics.prepareWriteConnection({ 
+//   host: RED_METRICS_HOST,
+//   gameVersionId: searchParams.get("gameVersion") || RED_METRICS_GAME_VERSION,
+//   player: playerData
+// });
+// redmetricsConnection.connect().then(function() {
+//   console.log("Connected to the RedMetrics server");
+//   showRedMetricsStatus("connected");
+// }).catch(function() {
+//   showRedMetricsStatus("disconnected");
+// });
 
 // Connect to parallel port via Mister P
 let webSocketScheme = window.location.protocol === "https:" ? "wss" : "ws"; 
