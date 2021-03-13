@@ -5,12 +5,6 @@ export function makeSprite(name) { 
   return new PIXI.Sprite(app.loader.resources[name].texture);
 }
 
-export function randomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 export function clamp(x, min, max) {
   return Math.min(max, Math.max(min, x));
 }
