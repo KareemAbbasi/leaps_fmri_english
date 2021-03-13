@@ -5,7 +5,7 @@ import "../node_modules/url-search-params-polyfill/index.js";
 
 const EPSILON = 0.001;
 const BLOCK_WIDTH = 50;
-const MAX_SEARCH_TIME = 12 * 60 * 1000;
+var MAX_SEARCH_TIME = 12 * 60 * 1000;
 const BLOCK_COLOR = 0x81e700;
 const HIGHLIGHTED_BLOCK_COLOR = 0x59853b;
 const DRAG_HIGHLIGHT_PERIOD = 500;
@@ -13,6 +13,7 @@ const RED_METRICS_HOST = "api.creativeforagingtask.com";
 const RED_METRICS_GAME_VERSION = "b13751f1-637f-411b-8ce2-29b1b24fddf0";
 
 let letsPlayScene = false;
+var inTraining = true;
 
 const TRIGGERS = {
   "loadGame": 100, // When loads starts
@@ -200,13 +201,18 @@ class TrainingScene extends util.Entity {
     document.getElementById("done-training-1").addEventListener("click", this.onDonePart1.bind(this));
     document.getElementById("done-training-2").addEventListener("click", this.onDonePart2.bind(this));
     document.getElementById("done-training-4").addEventListener("click", this.onDonePart4.bind(this));
-    document.getElementById("done-training-5").addEventListener("click", this.finishTraining.bind(this));
+    document.getElementById("done-training-5").addEventListener("click", e => {
+      letsPlayScene = true;
+      document.getElementById("pixi-canvas").focus();
+    });
   }
 
   finishTraining() {
     this.done = true;
     letsPlayScene = false;
+    inTraining = false;
     galleryShapes = [];
+    sceneStartedAt = Date.now();
     sendTrigger("startGame");
   }
 
@@ -267,7 +273,7 @@ class TrainingScene extends util.Entity {
     document.getElementById('training-4').style.display = "none";
     document.getElementById('training-5').style.display = "block";
     document.getElementById("pixi-canvas").focus();
-    letsPlayScene = true;
+    // letsPlayScene = true;
     this.blockScene.removeBlocks();
   }
 
@@ -393,8 +399,8 @@ class BlockScene extends util.Entity {
   update(timeSinceStart) {
     if(this.timesUp) return;
 
-
     if(timeSinceStart > MAX_SEARCH_TIME) {
+      if(inTraining) return;
       this.timesUp = true;
 
       document.getElementById("add-shape").disabled = true;
@@ -891,13 +897,19 @@ const metricsStartSceneEvents = {
 const searchParams = new URLSearchParams(window.location.search);
 const allowEarlyExit = searchParams.get("allowEarlyExit") !== "false" && searchParams.get("allowEarlyExit") !== "0";
 const showResults = searchParams.get("showResults") !== "false" && searchParams.get("showResults") !== "0";
+const timerValue = searchParams.get("length");
+if (timerValue != null) {
+  MAX_SEARCH_TIME = parseInt(timerValue) * 60 * 1000;
+  document.getElementById("game-length-sentence").innerHTML = `The game is- ${parseInt(timerValue)} minutes long.`
+}
+
 
 let galleryShapes = [];
 let searchScore = 0.33;
 let redmetricsConnection;
 const defaultStartingScene = "intro";
 let sceneLayer;
-let currentScene;
+let currentScene; 
 let currentSceneName;
 let sceneStartedAt = 0;
 
