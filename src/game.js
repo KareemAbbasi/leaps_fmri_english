@@ -7,10 +7,6 @@ const EPSILON = 0.001;
 const BLOCK_WIDTH = 50;
 const MAX_SEARCH_TIME = 12 * 60 * 1000;
 const BLOCK_COLOR = 0x81e700;
-
-const SOURCE_COLORS = [0x92D051, 0xFCC003, 0x5B9BD5];
-const TARGET_COLOR = 0xFCC003;
-
 const HIGHLIGHTED_BLOCK_COLOR = 0x59853b;
 const DRAG_HIGHLIGHT_PERIOD = 500;
 const RED_METRICS_HOST = "api.creativeforagingtask.com";
@@ -54,22 +50,10 @@ function drawBlock(graphics, fillColor) {
   graphics.endFill();
 }
 
-// Creates blocks using different colors. For the source
-function makeSourceShape(gridPos, number) {
+function makeBlockShape(gridPos) {
   let rect = new PIXI.Graphics();
-  drawBlock(rect, SOURCE_COLORS[number]);
+  drawBlock(rect, BLOCK_COLOR);
 
-  // console.log("Grid position is " + String(gridPosToPixelPos(gridPos).x) + " " + String(gridPosToPixelPos(gridPosToPixelPos).y));
-  rect.position = gridPosToPixelPos(gridPos);
-  return rect;
-}
-
-// Creates blocks using the color of the target.
-function makeTargetShape(gridPos) {
-  let rect = new PIXI.Graphics();
-  drawBlock(rect, TARGET_COLOR);
-
-  // console.log("Grid position is " + String(gridPosToPixelPos(gridPos).x) + " " + String(gridPosToPixelPos(gridPosToPixelPos).y));
   rect.position = gridPosToPixelPos(gridPos);
   return rect;
 }
@@ -316,7 +300,6 @@ class BlockScene extends util.Entity {
     this.container = new PIXI.Container();
     sceneLayer.addChild(this.container);
 
-    // This is the gallery box in the top right corner of the screen.
     const galleryBg = new PIXI.Graphics();
     galleryBg.beginFill(0x808080);
     galleryBg.lineColor = 0xffffff;
@@ -332,67 +315,18 @@ class BlockScene extends util.Entity {
     this.container.addChild(this.blocksContainer);
 
     // Make blocks
-    // this.blockGrid = [];
-    // for(let i = 0; i < 10; i++) {
-    //   const gridPos = new PIXI.Point(i, 10);
-    //   this.blockGrid.push(gridPos);
+    this.blockGrid = [];
+    for(let i = 0; i < 10; i++) {
+      const gridPos = new PIXI.Point(i, 0);
+      this.blockGrid.push(gridPos);
 
-    //   // returns a PIXI.Graphics object in the correct position.
-    //   let rect = makeBlockShape(gridPos);
-
-    //   // If enabled, the mouse cursor uses the pointer behavoir when hovered over the object.
-    //   rect.buttonMode = true;
-    //   rect.on("pointerdown", this.onPointerDown.bind(this))
-    //   rect.on("pointerup", this.onPointerUp.bind(this))
-    //   rect.on("pointermove", this.onPointerMove.bind(this))
-    //   rect.interactive = true;
-    //   this.blocksContainer.addChild(rect);
-    // }
-
-    // for(let i = 0; i < 10; i++) {
-    //   const gridPos = new PIXI.Point(i, 0);
-    //   this.blockGrid.push(gridPos);
-
-    //   // returns a PIXI.Graphics object in the correct position.
-    //   let rect = makeBlockShape(gridPos);
-
-    //   // If enabled, the mouse cursor uses the pointer behavoir when hovered over the object.
-    //   rect.buttonMode = true;
-    //   rect.on("pointerdown", this.onPointerDown.bind(this))
-    //   rect.on("pointerup", this.onPointerUp.bind(this))
-    //   rect.on("pointermove", this.onPointerMove.bind(this))
-    //   rect.interactive = true;
-    //   this.blocksContainer.addChild(rect);
-    // }
-
-    this.sourceBlocks = [];
-    this.targetBlocks = [];
-
-    for (let i = 0; i < 3; i++) {
-      const pos = new PIXI.Point(5, i);
-      let rect = makeSourceShape(pos, i);
+      let rect = makeBlockShape(gridPos);
 
       rect.buttonMode = true;
       rect.on("pointerdown", this.onPointerDown.bind(this))
       rect.on("pointerup", this.onPointerUp.bind(this))
       rect.on("pointermove", this.onPointerMove.bind(this))
-      rect.interactive = true;
 
-      this.sourceBlocks.push(pos);
-      this.blocksContainer.addChild(rect);
-    }
-
-    for (let i = 0; i < 3; i++) {
-      const pos = new PIXI.Point(0, i);
-      let rect = makeTargetShape(pos);
-
-      rect.buttonMode = true;
-      // rect.on("pointerdown", this.onPointerDown.bind(this))
-      // rect.on("pointerup", this.onPointerUp.bind(this))
-      // rect.on("pointermove", this.onPointerMove.bind(this))
-      rect.interactive = true;
-
-      this.targetBlocks.push(pos);
       this.blocksContainer.addChild(rect);
     }
 
@@ -436,7 +370,7 @@ class BlockScene extends util.Entity {
       const gridPos = new PIXI.Point(i, 0);
       this.blockGrid.push(gridPos);
 
-      let rect = makeSourceShape(gridPos);
+      let rect = makeBlockShape(gridPos);
 
       rect.buttonMode = true;
       rect.on("pointerdown", this.onPointerDown.bind(this))
@@ -595,12 +529,11 @@ class BlockScene extends util.Entity {
 
   updateBlockInteractivity() {
     for(const blockGraphic of this.blocksContainer.children) {
-      // if(this.canMoveBlock(pixelPosToGridPos(blockGraphic.position))) {
-      //   blockGraphic.interactive = true;
-      // } else {
-      //   blockGraphic.interactive = false;
-      // }
-      blockGraphic.interactive = false;
+      if(this.canMoveBlock(pixelPosToGridPos(blockGraphic.position))) {
+        blockGraphic.interactive = true;
+      } else {
+        blockGraphic.interactive = false;
+      }
     }
   }
 
@@ -734,7 +667,7 @@ class BlockScene extends util.Entity {
   updateGalleryShape(galleryShape) {
     this.galleryLayer.removeChildren();
     for(let block of galleryShape)
-      this.galleryLayer.addChild(makeSourceShape(block));
+      this.galleryLayer.addChild(makeBlockShape(block));
     util.centerContainer(this.galleryLayer, new PIXI.Point());
   }
 }
@@ -787,7 +720,7 @@ class GalleryScene extends util.Entity {
 
       const galleryLayer = new PIXI.Container();
       for(let block of galleryShapes[i])
-        galleryLayer.addChild(makeSourceShape(block));
+        galleryLayer.addChild(makeBlockShape(block));
       util.centerContainer(galleryLayer, new PIXI.Point());
       galleryParent.addChild(galleryLayer);
     }
@@ -962,7 +895,7 @@ const showResults = searchParams.get("showResults") !== "false" && searchParams.
 let galleryShapes = [];
 let searchScore = 0.33;
 let redmetricsConnection;
-const defaultStartingScene = "block";
+const defaultStartingScene = "intro";
 let sceneLayer;
 let currentScene;
 let currentSceneName;
