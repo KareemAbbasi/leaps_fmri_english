@@ -7807,14 +7807,6 @@ var possibleConstructorReturn = function (self, call) {
   return call && (typeof call === "object" || typeof call === "function") ? call : self;
 };
 
-function randomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-
-
 function distanceBetween(a, b) {
   var x = a.x - b.x;
   var y = a.y - b.y;
@@ -8376,12 +8368,15 @@ var ParallelEntities = function (_Entity2) {
 var BLOCK_WIDTH = 50;
 var MAX_SEARCH_TIME = 12 * 60 * 1000;
 var BLOCK_COLOR = 0x81e700;
-// 0xD7191C, 0xFDAE61, 0xABD9E9
-var SOURCE_COLORS = [0xD7191C, 0xFDAE61, 0xABD9E9];
-var TARGET_COLOR = 0xFDAE61;
+
+var SOURCE_COLORS = [0x92D051, 0xFCC003, 0x5B9BD5];
+var TARGET_COLOR = 0xFCC003;
 
 var HIGHLIGHTED_BLOCK_COLOR = 0x59853b;
 var DRAG_HIGHLIGHT_PERIOD = 500;
+var RED_METRICS_HOST = "api.creativeforagingtask.com";
+var RED_METRICS_GAME_VERSION = "b13751f1-637f-411b-8ce2-29b1b24fddf0";
+
 var letsPlayScene = false;
 
 var TRIGGERS = {
@@ -8493,9 +8488,9 @@ function setup() {
 
   app$1.ticker.add(update);
 
-  // redmetricsConnection.postEvent({
-  //   type: "start"
-  // });
+  redmetricsConnection.postEvent({
+    type: "start"
+  });
 
   if (supportsFullscreen(document.getElementById("game-parent"))) {
     document.getElementById("fullscreen-button").addEventListener("click", toggleFullscreen);
@@ -8518,9 +8513,9 @@ function changeScene(newSceneName) {
   currentScene.setup();
   currentScene.update(0);
 
-  // redmetricsConnection.postEvent({
-  //   type: metricsStartSceneEvents[newSceneName]
-  // });
+  redmetricsConnection.postEvent({
+    type: metricsStartSceneEvents[newSceneName]
+  });
 }
 
 function update(timeScale) {
@@ -8578,7 +8573,7 @@ var IntroScene = function (_util$Entity) {
     key: "onDone",
     value: function onDone() {
       playerData.customData.userProvidedId = document.getElementById("user-provided-id").value;
-      // redmetricsConnection.updatePlayer(playerData);
+      redmetricsConnection.updatePlayer(playerData);
 
       this.done = true;
     }
@@ -8733,15 +8728,103 @@ var BlockScene = function (_util$Entity3) {
       this.timesUp = false;
       this.changedShape = true;
 
-      this.numberTrials = numTrials;
-      this.currentTrial = 1;
-      this.canChangeTrial = false;
-
       this.container = new PIXI.Container();
       sceneLayer.addChild(this.container);
 
-      this.generateRandomVariables();
-      this.resetTrial();
+      // This is the gallery box in the top right corner of the screen.
+      // const galleryBg = new PIXI.Graphics();
+      // galleryBg.beginFill(0x808080);
+      // galleryBg.lineColor = 0xffffff;
+      // galleryBg.lineWidth = 1;
+      // galleryBg.drawRect(0, 0, 150, 150);
+      // galleryBg.endFill();
+      // galleryBg.position.set(800, 10);
+      // galleryBg.on("pointerdown", this.onAddShape, this);
+      // galleryBg.interactive = true;
+      // this.container.addChild(galleryBg);
+
+      this.blocksContainer = new PIXI.Container();
+      this.container.addChild(this.blocksContainer);
+
+      // Make blocks
+      // this.blockGrid = [];
+      // for(let i = 0; i < 10; i++) {
+      //   const gridPos = new PIXI.Point(i, 10);
+      //   this.blockGrid.push(gridPos);
+
+      //   // returns a PIXI.Graphics object in the correct position.
+      //   let rect = makeBlockShape(gridPos);
+
+      //   // If enabled, the mouse cursor uses the pointer behavoir when hovered over the object.
+      //   rect.buttonMode = true;
+      //   rect.on("pointerdown", this.onPointerDown.bind(this))
+      //   rect.on("pointerup", this.onPointerUp.bind(this))
+      //   rect.on("pointermove", this.onPointerMove.bind(this))
+      //   rect.interactive = true;
+      //   this.blocksContainer.addChild(rect);
+      // }
+
+      // for(let i = 0; i < 10; i++) {
+      //   const gridPos = new PIXI.Point(i, 0);
+      //   this.blockGrid.push(gridPos);
+
+      //   // returns a PIXI.Graphics object in the correct position.
+      //   let rect = makeBlockShape(gridPos);
+
+      //   // If enabled, the mouse cursor uses the pointer behavoir when hovered over the object.
+      //   rect.buttonMode = true;
+      //   rect.on("pointerdown", this.onPointerDown.bind(this))
+      //   rect.on("pointerup", this.onPointerUp.bind(this))
+      //   rect.on("pointermove", this.onPointerMove.bind(this))
+      //   rect.interactive = true;
+      //   this.blocksContainer.addChild(rect);
+      // }
+
+      this.sourceBlocks = [];
+      this.targetBlocks = [];
+
+      this.sourceColors = shuffle(SOURCE_COLORS);
+      // Source blocks
+      for (var i = 0; i < 3; i++) {
+        var pos = new PIXI.Point(0, i);
+        var rect = makeSourceShape(pos, this.sourceColors[i]);
+
+        rect.buttonMode = true;
+        rect.on("pointerdown", this.onPointerDown.bind(this));
+        rect.on("pointerup", this.onPointerUp.bind(this));
+        rect.on("pointermove", this.onPointerMove.bind(this));
+        rect.interactive = true;
+
+        this.sourceBlocks.push(pos);
+        this.blocksContainer.addChild(rect);
+      }
+
+      // Target blocks
+      for (var _i = 0; _i < 3; _i++) {
+        var _pos = new PIXI.Point(11, _i - 4);
+        var _rect = makeTargetShape(_pos);
+
+        // TODO - for now target blocks cannot be chosen and dragged around. 
+        // rect.buttonMode = true;
+        // rect.on("pointerdown", this.onPointerDown.bind(this))
+        // rect.on("pointerup", this.onPointerUp.bind(this))
+        // rect.on("pointermove", this.onPointerMove.bind(this))
+        _rect.interactive = false;
+
+        this.targetBlocks.push(_pos);
+        this.blocksContainer.addChild(_rect);
+      }
+
+      this.updateBlocks();
+
+      // const galleryParent = new PIXI.Container();;
+      // galleryParent.position.set(875, 85);
+      // galleryParent.scale.set(0.3);
+      // this.container.addChild(galleryParent);
+
+      // this.galleryLayer = new PIXI.Container();
+      // galleryParent.addChild(this.galleryLayer);
+
       // HTML
       document.getElementById("blocks-gui").style.display = "block";
 
@@ -8760,119 +8843,6 @@ var BlockScene = function (_util$Entity3) {
       var doneAddingButton = document.getElementById("done-adding");
       doneAddingButton.addEventListener("click", this.onAttemptDone);
       doneAddingButton.disabled = !allowEarlyExit;
-    }
-  }, {
-    key: "generateRandomVariables",
-    value: function generateRandomVariables() {
-      // All the Math.randoms are to choose a different starting point in each trial.
-      this.isRow = Math.random() < 0.5;
-      this.p = [];
-      if (this.isRow) {
-        this.p = [randomInt(0, 10), randomInt(3, 4)];
-      } else {
-        this.p = [randomInt(3, 11), randomInt(0, 4)];
-      }
-
-      this.sourceFirst = Math.random() < 0.5;
-      this.sourceColors = shuffle(SOURCE_COLORS);
-    }
-  }, {
-    key: "resetTrial",
-    value: function resetTrial() {
-      this.container.removeChild(this.blocksContainer);
-      this.canChangeTrial = false;
-      document.getElementById("wrong-color-message").style.display = "none";
-      document.getElementById("wrong-position-message").style.display = "none";
-      document.getElementById("correct-message").style.display = "none";
-      document.getElementById("early-release-message").style.display = "none";
-
-      this.blocksContainer = new PIXI.Container();
-      this.container.addChild(this.blocksContainer);
-
-      this.sourceBlocks = [];
-      this.targetBlocks = [];
-
-      this.targetPositions = [];
-
-      // Source blocks
-      for (var i = 0; i < 3; i++) {
-        var randomPoint = [];
-        if (this.isRow) {
-          randomPoint = this.sourceFirst ? [i, 0] : [i + this.p[0], this.p[1]];
-        } else {
-          randomPoint = this.sourceFirst ? [0, i] : [this.p[0], i + this.p[1]];
-        }
-        var pos = new PIXI.Point(randomPoint[0], randomPoint[1]);
-        var rect = makeSourceShape(pos, this.sourceColors[i]);
-
-        rect.buttonMode = true;
-        rect.on("pointerdown", this.onPointerDown.bind(this));
-        rect.on("pointerup", this.onPointerUp.bind(this));
-        rect.on("pointermove", this.onPointerMove.bind(this));
-        rect.interactive = true;
-
-        this.sourceBlocks.push(pos);
-        this.blocksContainer.addChild(rect);
-      }
-
-      // Target blocks
-      for (var _i = 0; _i < 3; _i++) {
-        var randomPoint = [];
-        if (this.isRow) {
-          randomPoint = !this.sourceFirst ? [_i, 0] : [_i + this.p[0], this.p[1]];
-        } else {
-          randomPoint = !this.sourceFirst ? [0, _i] : [this.p[0], _i + this.p[1]];
-        }
-
-        // const p = [11, i - 4];
-        var _pos = new PIXI.Point(randomPoint[0], randomPoint[1]);
-        var _rect = makeTargetShape(_pos);
-
-        _rect.interactive = false;
-
-        this.targetBlocks.push(_pos);
-        this.blocksContainer.addChild(_rect);
-      }
-
-      this.updateBlocks();
-    }
-  }, {
-    key: "nextTrial",
-    value: function nextTrial() {
-      if (this.currentTrial < this.numberTrials && this.canChangeTrial) {
-        this.currentTrial += 1;
-        this.generateRandomVariables();
-        this.resetTrial();
-        this.canChangeTrial = false;
-      }
-    }
-  }, {
-    key: "disableBlocksInteractivity",
-    value: function disableBlocksInteractivity() {
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
-
-      try {
-        for (var _iterator = this.blocksContainer.children[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-          var block = _step.value;
-
-          block.interactive = false;
-        }
-      } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion && _iterator.return) {
-            _iterator.return();
-          }
-        } finally {
-          if (_didIteratorError) {
-            throw _iteratorError;
-          }
-        }
-      }
     }
   }, {
     key: "resetBlocks",
@@ -8901,6 +8871,7 @@ var BlockScene = function (_util$Entity3) {
   }, {
     key: "removeBlocks",
     value: function removeBlocks() {
+      console.log('hello there!!!!!');
       this.container.removeChild(this.blocksContainer);
       this.blockGrid = [];
     }
@@ -8923,28 +8894,28 @@ var BlockScene = function (_util$Entity3) {
       }
 
       // Animate highlighted blocks
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
 
       try {
-        for (var _iterator2 = this.highlightedBlocks[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-          var block = _step2.value;
+        for (var _iterator = this.highlightedBlocks[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var block = _step.value;
 
           var color = cyclicLerpColor(BLOCK_COLOR, HIGHLIGHTED_BLOCK_COLOR, timeSinceStart % DRAG_HIGHLIGHT_PERIOD / DRAG_HIGHLIGHT_PERIOD);
           drawBlock(block, color);
         }
       } catch (err) {
-        _didIteratorError2 = true;
-        _iteratorError2 = err;
+        _didIteratorError = true;
+        _iteratorError = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-            _iterator2.return();
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
           }
         } finally {
-          if (_didIteratorError2) {
-            throw _iteratorError2;
+          if (_didIteratorError) {
+            throw _iteratorError;
           }
         }
       }
@@ -8972,6 +8943,36 @@ var BlockScene = function (_util$Entity3) {
   }, {
     key: "highlightMovableBlocks",
     value: function highlightMovableBlocks() {
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = this.blocksContainer.children[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var blockGraphic = _step2.value;
+
+          if (this.canMoveBlock(pixelPosToGridPos(blockGraphic.position))) {
+            this.highlightedBlocks.add(blockGraphic);
+          }
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+            _iterator2.return();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
+    }
+  }, {
+    key: "unhighlightMovableBlocks",
+    value: function unhighlightMovableBlocks() {
       var _iteratorNormalCompletion3 = true;
       var _didIteratorError3 = false;
       var _iteratorError3 = undefined;
@@ -8981,7 +8982,7 @@ var BlockScene = function (_util$Entity3) {
           var blockGraphic = _step3.value;
 
           if (this.canMoveBlock(pixelPosToGridPos(blockGraphic.position))) {
-            this.highlightedBlocks.add(blockGraphic);
+            this.unhighlightBlock(blockGraphic);
           }
         }
       } catch (err) {
@@ -8995,36 +8996,6 @@ var BlockScene = function (_util$Entity3) {
         } finally {
           if (_didIteratorError3) {
             throw _iteratorError3;
-          }
-        }
-      }
-    }
-  }, {
-    key: "unhighlightMovableBlocks",
-    value: function unhighlightMovableBlocks() {
-      var _iteratorNormalCompletion4 = true;
-      var _didIteratorError4 = false;
-      var _iteratorError4 = undefined;
-
-      try {
-        for (var _iterator4 = this.blocksContainer.children[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-          var blockGraphic = _step4.value;
-
-          if (this.canMoveBlock(pixelPosToGridPos(blockGraphic.position))) {
-            this.unhighlightBlock(blockGraphic);
-          }
-        }
-      } catch (err) {
-        _didIteratorError4 = true;
-        _iteratorError4 = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion4 && _iterator4.return) {
-            _iterator4.return();
-          }
-        } finally {
-          if (_didIteratorError4) {
-            throw _iteratorError4;
           }
         }
       }
@@ -9050,12 +9021,16 @@ var BlockScene = function (_util$Entity3) {
       var blockColor = this.draggingBlock.graphicsData[0].fillColor;
       if (blockColor != parseInt(String(TARGET_COLOR))) {
         //TODO You have some cleaning up to do.
-        // alert("You chose the wrong color!");
-        document.getElementById("wrong-color-message").style.display = "block";
+        alert("You chose the wrong color!");
+        console.log("Chosen color decimals is: " + String(blockColor));
         this.draggingBlock = null;
-        this.disableBlocksInteractivity();
         return;
       }
+      // if (blockColor == SOURCE_COLORS_DEC[0] || blockColor == SOURCE_COLORS_DEC[2]) {
+      //   alert("You chose the wrong color!");
+      //   this.draggingBlock = null;
+      // }
+      console.log(this.draggingBlock);
 
       // Reorder so this block is on top
       // this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
@@ -9063,7 +9038,6 @@ var BlockScene = function (_util$Entity3) {
 
       var gridPos = pixelPosToGridPos(this.draggingBlock.position);
       this.sourceBlocks = removeFromArray(this.sourceBlocks, gridPos);
-      this.canChangeTrial = true;
 
       // this.highlightedBlocks.add(this.draggingBlock);
 
@@ -9105,10 +9079,8 @@ var BlockScene = function (_util$Entity3) {
       // If they pressed a number key, add the shape
       if (!isNaN(parseInt(e.key))) {
         var keyValue = parseInt(e.key);
-        if (keyValue == 1) {
-          this.nextTrial();
-        } else if (keyValue == 2) {
-          this.resetTrial();
+        if (keyValue == 1 || keyValue == 2) {
+          this.onAddShape();
         }
       }
     }
@@ -9133,13 +9105,13 @@ var BlockScene = function (_util$Entity3) {
   }, {
     key: "updateBlockInteractivity",
     value: function updateBlockInteractivity() {
-      var _iteratorNormalCompletion5 = true;
-      var _didIteratorError5 = false;
-      var _iteratorError5 = undefined;
+      var _iteratorNormalCompletion4 = true;
+      var _didIteratorError4 = false;
+      var _iteratorError4 = undefined;
 
       try {
-        for (var _iterator5 = this.blocksContainer.children[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-          var blockGraphic = _step5.value;
+        for (var _iterator4 = this.blocksContainer.children[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+          var blockGraphic = _step4.value;
 
           // if(this.canMoveBlock(pixelPosToGridPos(blockGraphic.position))) {
           //   blockGraphic.interactive = true;
@@ -9150,16 +9122,16 @@ var BlockScene = function (_util$Entity3) {
           return;
         }
       } catch (err) {
-        _didIteratorError5 = true;
-        _iteratorError5 = err;
+        _didIteratorError4 = true;
+        _iteratorError4 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion5 && _iterator5.return) {
-            _iterator5.return();
+          if (!_iteratorNormalCompletion4 && _iterator4.return) {
+            _iterator4.return();
           }
         } finally {
-          if (_didIteratorError5) {
-            throw _iteratorError5;
+          if (_didIteratorError4) {
+            throw _iteratorError4;
           }
         }
       }
@@ -9179,6 +9151,7 @@ var BlockScene = function (_util$Entity3) {
       var closestTargetPos = _.min(freeGridPositionsTarget, function (freePos) {
         return distance(droppedGridPos, freePos);
       });
+
       // Check if it is closer to the target, closer to who?
       var distanceToTarget = distance(droppedGridPos, closestTargetPos);
       var distanceToSource = distance(droppedGridPos, closestSourcePos);
@@ -9189,29 +9162,21 @@ var BlockScene = function (_util$Entity3) {
       var BOUNDARY_LIMIT = 1;
 
       //TODO remove
-
+      console.log("Distance to target " + String(distanceToTarget));
+      console.log("Boundary limit is: " + String(BOUNDARY_LIMIT));
       if (closerToTarget && distanceToTarget <= BOUNDARY_LIMIT) {
         // Check if it is in the boundary of the target or if it is far.
         // If closer to the target and within the boundary, attach it to the closest box.
         // If closer to the target but not in the allowed boundary, attach it to the source
-
         block.position = gridPosToPixelPos(closestTargetPos);
 
-        if (!contains(this.targetPositions, closestTargetPos)) {
-          // alert("wrong position");
-          document.getElementById("wrong-position-message").style.display = "block";
-        } else {
-          document.getElementById("correct-message").style.display = "block";
-        }
         // this.targetBlocks.push(closestTargetPos);
       } else {
         // If closer to the source, attach it to the source. 
         block.position = gridPosToPixelPos(closestSourcePos);
-        document.getElementById("early-release-message").style.display = "block";
         // this.sourceBlocks.push(closestSourcePos);
         // this.targetBlocks.push(closestTargetPos);
       }
-      this.disableBlocksInteractivity();
 
       // block.position = gridPosToPixelPos(closestSourcePos);
       // this.blockGrid.push(closestSourcePos);
@@ -9233,12 +9198,47 @@ var BlockScene = function (_util$Entity3) {
     key: "findFreeGridPositionsSource",
     value: function findFreeGridPositionsSource() {
       var ret = [];
+      var _iteratorNormalCompletion5 = true;
+      var _didIteratorError5 = false;
+      var _iteratorError5 = undefined;
+
+      try {
+        for (var _iterator5 = this.sourceBlocks[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+          var b = _step5.value;
+
+          ret.push(new PIXI.Point(b.x - 1, b.y));
+          ret.push(new PIXI.Point(b.x + 1, b.y));
+          ret.push(new PIXI.Point(b.x, b.y - 1));
+          ret.push(new PIXI.Point(b.x, b.y + 1));
+        }
+      } catch (err) {
+        _didIteratorError5 = true;
+        _iteratorError5 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion5 && _iterator5.return) {
+            _iterator5.return();
+          }
+        } finally {
+          if (_didIteratorError5) {
+            throw _iteratorError5;
+          }
+        }
+      }
+
+      ret = uniq(ret);
+      return difference(ret, this.sourceBlocks);
+    }
+  }, {
+    key: "findFreeGridPositionsTarget",
+    value: function findFreeGridPositionsTarget() {
+      var ret = [];
       var _iteratorNormalCompletion6 = true;
       var _didIteratorError6 = false;
       var _iteratorError6 = undefined;
 
       try {
-        for (var _iterator6 = this.sourceBlocks[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+        for (var _iterator6 = this.targetBlocks[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
           var b = _step6.value;
 
           ret.push(new PIXI.Point(b.x - 1, b.y));
@@ -9257,58 +9257,6 @@ var BlockScene = function (_util$Entity3) {
         } finally {
           if (_didIteratorError6) {
             throw _iteratorError6;
-          }
-        }
-      }
-
-      ret = uniq(ret);
-      return difference(ret, this.sourceBlocks);
-    }
-  }, {
-    key: "findFreeGridPositionsTarget",
-    value: function findFreeGridPositionsTarget() {
-      var ret = [];
-      var i = 0;
-      this.targetPositions = [];
-      var _iteratorNormalCompletion7 = true;
-      var _didIteratorError7 = false;
-      var _iteratorError7 = undefined;
-
-      try {
-        for (var _iterator7 = this.targetBlocks[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
-          var b = _step7.value;
-
-          ret.push(new PIXI.Point(b.x - 1, b.y));
-          ret.push(new PIXI.Point(b.x + 1, b.y));
-          ret.push(new PIXI.Point(b.x, b.y - 1));
-          ret.push(new PIXI.Point(b.x, b.y + 1));
-
-          if (i == 0) {
-            if (this.isRow) {
-              this.targetPositions.push(new PIXI.Point(b.x - 1, b.y));
-            } else {
-              this.targetPositions.push(new PIXI.Point(b.x, b.y - 1));
-            }
-          } else if (i == 2) {
-            if (this.isRow) {
-              this.targetPositions.push(new PIXI.Point(b.x + 1, b.y));
-            } else {
-              this.targetPositions.push(new PIXI.Point(b.x, b.y + 1));
-            }
-          }
-          i++;
-        }
-      } catch (err) {
-        _didIteratorError7 = true;
-        _iteratorError7 = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion7 && _iterator7.return) {
-            _iterator7.return();
-          }
-        } finally {
-          if (_didIteratorError7) {
-            throw _iteratorError7;
           }
         }
       }
@@ -9382,13 +9330,13 @@ var BlockScene = function (_util$Entity3) {
       document.getElementById("add-shape").disabled = true;
       this.changedShape = false;
 
-      // redmetricsConnection.postEvent({
-      //   type: "added shape to gallery",
-      //   customData: {
-      //     shape: convertShapeToArray(this.blockGrid),
-      //     timeSinceLastMouseUp: Date.now() - this.lastMouseUpTime
-      //   }
-      // });
+      redmetricsConnection.postEvent({
+        type: "added shape to gallery",
+        customData: {
+          shape: convertShapeToArray(this.blockGrid),
+          timeSinceLastMouseUp: Date.now() - this.lastMouseUpTime
+        }
+      });
 
       this.emit("addedShape");
     }
@@ -9421,27 +9369,27 @@ var BlockScene = function (_util$Entity3) {
     key: "updateGalleryShape",
     value: function updateGalleryShape(galleryShape) {
       this.galleryLayer.removeChildren();
-      var _iteratorNormalCompletion8 = true;
-      var _didIteratorError8 = false;
-      var _iteratorError8 = undefined;
+      var _iteratorNormalCompletion7 = true;
+      var _didIteratorError7 = false;
+      var _iteratorError7 = undefined;
 
       try {
-        for (var _iterator8 = galleryShape[Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
-          var block = _step8.value;
+        for (var _iterator7 = galleryShape[Symbol.iterator](), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+          var block = _step7.value;
 
           this.galleryLayer.addChild(makeSourceShape(block));
         }
       } catch (err) {
-        _didIteratorError8 = true;
-        _iteratorError8 = err;
+        _didIteratorError7 = true;
+        _iteratorError7 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion8 && _iterator8.return) {
-            _iterator8.return();
+          if (!_iteratorNormalCompletion7 && _iterator7.return) {
+            _iterator7.return();
           }
         } finally {
-          if (_didIteratorError8) {
-            throw _iteratorError8;
+          if (_didIteratorError7) {
+            throw _iteratorError7;
           }
         }
       }
@@ -9512,27 +9460,27 @@ var GalleryScene = function (_util$Entity4) {
         pageContainer.addChild(galleryParent);
 
         var galleryLayer = new PIXI.Container();
-        var _iteratorNormalCompletion9 = true;
-        var _didIteratorError9 = false;
-        var _iteratorError9 = undefined;
+        var _iteratorNormalCompletion8 = true;
+        var _didIteratorError8 = false;
+        var _iteratorError8 = undefined;
 
         try {
-          for (var _iterator9 = galleryShapes[i][Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
-            var block = _step9.value;
+          for (var _iterator8 = galleryShapes[i][Symbol.iterator](), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+            var block = _step8.value;
 
             galleryLayer.addChild(makeSourceShape(block));
           }
         } catch (err) {
-          _didIteratorError9 = true;
-          _iteratorError9 = err;
+          _didIteratorError8 = true;
+          _iteratorError8 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion9 && _iterator9.return) {
-              _iterator9.return();
+            if (!_iteratorNormalCompletion8 && _iterator8.return) {
+              _iterator8.return();
             }
           } finally {
-            if (_didIteratorError9) {
-              throw _iteratorError9;
+            if (_didIteratorError8) {
+              throw _iteratorError8;
             }
           }
         }
@@ -9590,14 +9538,14 @@ var GalleryScene = function (_util$Entity4) {
 
       sendTrigger("chooseGalleryShape");
 
-      // redmetricsConnection.postEvent({
-      //   type: "selected shape",
-      //   customData: {
-      //     shapeIndex: shapeIndex,
-      //     shape: convertShapeToArray(galleryShapes[shapeIndex]),
-      //     isSelected: isSelected,
-      //   }
-      // });
+      redmetricsConnection.postEvent({
+        type: "selected shape",
+        customData: {
+          shapeIndex: shapeIndex,
+          shape: convertShapeToArray(galleryShapes[shapeIndex]),
+          isSelected: isSelected
+        }
+      });
     }
   }, {
     key: "updateDoneButton",
@@ -9623,13 +9571,13 @@ var GalleryScene = function (_util$Entity4) {
 
       sendTrigger("galleryDone");
 
-      // redmetricsConnection.postEvent({
-      //   type: "done selection",
-      //   customData: {
-      //     shapeIndices: this.selectedIndexes,
-      //     shapes: selectedShapes
-      //   }
-      // });
+      redmetricsConnection.postEvent({
+        type: "done selection",
+        customData: {
+          shapeIndices: this.selectedIndexes,
+          shapes: selectedShapes
+        }
+      });
 
       this.done = true;
     }
@@ -9675,36 +9623,34 @@ var ResultsScene = function (_util$Entity5) {
         }
 
         var searchScorePercent = Math.round(Math.abs(searchScore) * 100);
-        var _iteratorNormalCompletion10 = true;
-        var _didIteratorError10 = false;
-        var _iteratorError10 = undefined;
+        var _iteratorNormalCompletion9 = true;
+        var _didIteratorError9 = false;
+        var _iteratorError9 = undefined;
 
         try {
-          for (var _iterator10 = document.getElementsByClassName("searchScorePercent")[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
-            var el = _step10.value;
+          for (var _iterator9 = document.getElementsByClassName("searchScorePercent")[Symbol.iterator](), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+            var el = _step9.value;
 
             el.innerText = searchScorePercent;
           }
-
-          // document.getElementById("code").innerText = redmetricsConnection.playerId ? 
-          // redmetricsConnection.playerId.substr(-8) : "Unknown";
-
-          // Setup followup link
         } catch (err) {
-          _didIteratorError10 = true;
-          _iteratorError10 = err;
+          _didIteratorError9 = true;
+          _iteratorError9 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion10 && _iterator10.return) {
-              _iterator10.return();
+            if (!_iteratorNormalCompletion9 && _iterator9.return) {
+              _iterator9.return();
             }
           } finally {
-            if (_didIteratorError10) {
-              throw _iteratorError10;
+            if (_didIteratorError9) {
+              throw _iteratorError9;
             }
           }
         }
 
+        document.getElementById("code").innerText = redmetricsConnection.playerId ? redmetricsConnection.playerId.substr(-8) : "Unknown";
+
+        // Setup followup link
         if (searchParams.has("followupLink")) {
           var expId = searchParams.get("expId") || searchParams.get("expID") || "";
           var userId = searchParams.get("userId") || searchParams.get("userID") || "";
@@ -9745,12 +9691,18 @@ var sceneTransitions = {
   gallery: "results"
 };
 
+var metricsStartSceneEvents = {
+  intro: "startIntro",
+  training: "startTutorial",
+  block: "startSearch",
+  gallery: "end search",
+  results: "startFeedback"
+};
+
 var searchParams = new URLSearchParams(window.location.search);
 var allowEarlyExit = searchParams.get("allowEarlyExit") !== "false" && searchParams.get("allowEarlyExit") !== "0";
 var showResults = searchParams.get("showResults") !== "false" && searchParams.get("showResults") !== "0";
-var numTrials = searchParams.get("trials") ? parseInt(searchParams.get("trials")) : 30;
-console.log(searchParams.get("trials"));
-console.log(numTrials);
+
 var galleryShapes = [];
 var searchScore = 0.33;
 var redmetricsConnection = void 0;
@@ -9769,6 +9721,35 @@ var app$1 = new PIXI.Application({
 
 app$1.loader.add(["images/slider.png"]).on("progress", loadProgressHandler).load(setup);
 
+// Load RedMetrics
+function showRedMetricsStatus(status) {
+  var _iteratorNormalCompletion10 = true;
+  var _didIteratorError10 = false;
+  var _iteratorError10 = undefined;
+
+  try {
+    for (var _iterator10 = document.getElementById("redmetrics-connection-status").children[Symbol.iterator](), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+      var child = _step10.value;
+
+      var shouldShow = child.id === "redmetrics-connection-status-" + status;
+      child.style.display = shouldShow ? "block" : "none";
+    }
+  } catch (err) {
+    _didIteratorError10 = true;
+    _iteratorError10 = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion10 && _iterator10.return) {
+        _iterator10.return();
+      }
+    } finally {
+      if (_didIteratorError10) {
+        throw _iteratorError10;
+      }
+    }
+  }
+}
+
 var playerData = {
   externalId: searchParams.get("userId") || searchParams.get("userID"),
   customData: {
@@ -9778,17 +9759,17 @@ var playerData = {
   }
 };
 
-// redmetricsConnection = redmetrics.prepareWriteConnection({ 
-//   host: RED_METRICS_HOST,
-//   gameVersionId: searchParams.get("gameVersion") || RED_METRICS_GAME_VERSION,
-//   player: playerData
-// });
-// redmetricsConnection.connect().then(function() {
-//   console.log("Connected to the RedMetrics server");
-//   showRedMetricsStatus("connected");
-// }).catch(function() {
-//   showRedMetricsStatus("disconnected");
-// });
+redmetricsConnection = redmetrics.prepareWriteConnection({
+  host: RED_METRICS_HOST,
+  gameVersionId: searchParams.get("gameVersion") || RED_METRICS_GAME_VERSION,
+  player: playerData
+});
+redmetricsConnection.connect().then(function () {
+  console.log("Connected to the RedMetrics server");
+  showRedMetricsStatus("connected");
+}).catch(function () {
+  showRedMetricsStatus("disconnected");
+});
 
 // Connect to parallel port via Mister P
 var webSocketScheme = window.location.protocol === "https:" ? "wss" : "ws";
