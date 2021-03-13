@@ -540,7 +540,8 @@ class BlockScene extends util.Entity {
     this.draggingBlock = this.mouseOverBlock;
     this.draggingBlockStartGridPosition = pixelPosToGridPos(this.draggingBlock.position);
     this.startDragTime = Date.now();
-
+    
+    // TODO there is something wrong with this line
     this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
     
     const gridPos = pixelPosToGridPos(this.draggingBlock.position);
