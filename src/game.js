@@ -205,6 +205,8 @@ class TrainingScene extends util.Entity {
       letsPlayScene = true;
       document.getElementById("pixi-canvas").focus();
     });
+    document.getElementById("pixi-canvas").focus();
+
   }
 
   finishTraining() {
@@ -236,8 +238,9 @@ class TrainingScene extends util.Entity {
 
     this.didDropBlock = true;
     this.blockScene.highlightMovableBlocks();
-
     document.getElementById("done-training-1").style.display = "block";
+    document.getElementById("pixi-canvas").focus();
+
   }
 
   onDonePart1() {
@@ -246,6 +249,8 @@ class TrainingScene extends util.Entity {
 
     // hide title
     document.getElementById("training-title").style.visibility = "hidden";
+    document.getElementById("pixi-canvas").focus();
+
   }
 
   onDonePart2() {
@@ -266,6 +271,7 @@ class TrainingScene extends util.Entity {
     // this.blockScene.teardown()
     this.blockScene.resetBlocks()
     this.blockScene.off("addedShape", this.onAddedShape, this);
+    document.getElementById("pixi-canvas").focus();
 
   }
 
@@ -303,6 +309,8 @@ class BlockScene extends util.Entity {
     this.timesUp = false;
     this.changedShape = true;
 
+    this.mouseOverBlock = null;
+
     this.container = new PIXI.Container();
     sceneLayer.addChild(this.container);
 
@@ -329,9 +337,16 @@ class BlockScene extends util.Entity {
       let rect = makeBlockShape(gridPos);
 
       rect.buttonMode = true;
-      rect.on("pointerdown", this.onPointerDown.bind(this))
-      rect.on("pointerup", this.onPointerUp.bind(this))
+      if (!buttonControls) {
+        rect.on("pointerdown", this.onPointerDown.bind(this))
+        rect.on("pointerup", this.onPointerUp.bind(this))
+      }
       rect.on("pointermove", this.onPointerMove.bind(this))
+
+      var _self = this;
+      rect.mouseover = function(mouseData) {
+        if (rect.interactive) _self.mouseOverBlock = rect;
+      }
 
       this.blocksContainer.addChild(rect);
     }
@@ -379,9 +394,16 @@ class BlockScene extends util.Entity {
       let rect = makeBlockShape(gridPos);
 
       rect.buttonMode = true;
-      rect.on("pointerdown", this.onPointerDown.bind(this))
-      rect.on("pointerup", this.onPointerUp.bind(this))
+      if (!buttonControls) {
+        rect.on("pointerdown", this.onPointerDown.bind(this))
+        rect.on("pointerup", this.onPointerUp.bind(this))
+      }
       rect.on("pointermove", this.onPointerMove.bind(this))
+
+      var _self = this;
+      rect.mouseover = function(mouseData) {
+        if (rect.interactive) _self.mouseOverBlock = rect;
+      }
 
       this.blocksContainer.addChild(rect);
     }
@@ -503,10 +525,52 @@ class BlockScene extends util.Entity {
 
   onPointerMove(e) {
     if(!this.draggingBlock) return;
-    if(e.data.pointerId !== this.draggingPointerId) return;
+    if(!buttonControls && (e.data.pointerId !== this.draggingPointerId)) return;
 
 
     this.draggingBlock.position = util.subtract(e.data.getLocalPosition(app.stage), this.blocksContainer.position);
+  }
+
+  pickupBlockUsingButtons() {
+    // This function is similar to the onPointerDown but without the things specific 
+    // for the pointer event.
+    if(this.draggingBlock) return; // Don't allow multiple drags
+    if(this.timesUp) return; // Don't allow drags when time is up
+
+    this.draggingBlock = this.mouseOverBlock;
+    this.draggingBlockStartGridPosition = pixelPosToGridPos(this.draggingBlock.position);
+    this.startDragTime = Date.now();
+
+    this.blocksContainer.setChildIndex(this.draggingBlock, this.blocksContainer.children.length - 1);
+    
+    const gridPos = pixelPosToGridPos(this.draggingBlock.position);
+    this.blockGrid = util.removeFromArray(this.blockGrid, gridPos);
+    this.highlightedBlocks.add(this.draggingBlock);
+
+    document.getElementById("html-layer").className = "no-pointer-events";
+  }
+
+  dropBlockUsingButtons() {
+    // This function is basically the same as the onPointerUp 
+    // but without the parameter e :P
+
+    if(!this.draggingBlock) return;
+
+    this.dropBlock(this.draggingBlock, this.draggingBlock.position);
+
+    this.unhighlightBlock(this.draggingBlock);
+
+    this.draggingBlock = null;
+    this.draggingPointerId = null;
+    this.updateBlocks();
+
+    document.getElementById("add-shape").disabled = false;
+    this.changedShape = true;
+
+    // Re-enable html buttons
+    document.getElementById("html-layer").className = "";
+
+    this.emit("droppedBlock");
   }
 
   onKeyUp(e) {
@@ -515,6 +579,10 @@ class BlockScene extends util.Entity {
       var keyValue = parseInt(e.key);
       if (keyValue == 1 || keyValue == 2) {
         this.onAddShape();
+      } else if (keyValue == 3) {
+        if (buttonControls) this.pickupBlockUsingButtons();
+      } else if (keyValue == 4) {
+        if (buttonControls) this.dropBlockUsingButtons();
       }
     }
   }
@@ -644,7 +712,7 @@ class BlockScene extends util.Entity {
         timeSinceLastMouseUp: Date.now() - this.lastMouseUpTime
       }
     });
-
+    document.getElementById("pixi-canvas").focus();
     this.emit("addedShape");
   }
 
@@ -656,6 +724,7 @@ class BlockScene extends util.Entity {
     } else {
       document.getElementById("modal-confirm-done").style.display = "block";
     }
+    document.getElementById("pixi-canvas").focus();
   }
 
   cancelModal() {
@@ -902,6 +971,9 @@ if (timerValue != null) {
   MAX_SEARCH_TIME = parseInt(timerValue) * 60 * 1000;
   document.getElementById("game-length-sentence").innerHTML = `The game is- ${parseInt(timerValue)} minutes long.`
 }
+
+const buttonControls = searchParams.get("buttonControls") === "true";
+console.log(buttonControls);
 
 
 let galleryShapes = [];
