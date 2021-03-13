@@ -243,15 +243,9 @@ a {
   font-size: xx-large;
 }
 
-#wrong-color-message, #wrong-position-message, #early-release-message {
+#wrong-color-message {
   background-color: rgba(0, 0, 0, 0.8);
   color: red;
-  font-size: xx-large;
-}
-
-#correct-message {
-  background-color: rgba(0, 0, 0, 0.8);
-  color: green;
   font-size: xx-large;
 }
 
