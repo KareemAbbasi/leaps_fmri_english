@@ -348,6 +348,10 @@ class BlockScene extends util.Entity {
         if (rect.interactive) _self.mouseOverBlock = rect;
       }
 
+      rect.mouseout = function(mouseData) {
+        _self.mouseOverBlock = null;
+      }
+
       this.blocksContainer.addChild(rect);
     }
 
@@ -403,6 +407,10 @@ class BlockScene extends util.Entity {
       var _self = this;
       rect.mouseover = function(mouseData) {
         if (rect.interactive) _self.mouseOverBlock = rect;
+      }
+
+      rect.mouseout = function(mouseData) {
+        _self.mouseOverBlock = null;
       }
 
       this.blocksContainer.addChild(rect);
@@ -536,6 +544,7 @@ class BlockScene extends util.Entity {
     // for the pointer event.
     if(this.draggingBlock) return; // Don't allow multiple drags
     if(this.timesUp) return; // Don't allow drags when time is up
+    if(!this.mouseOverBlock) return;
 
     this.draggingBlock = this.mouseOverBlock;
     this.draggingBlockStartGridPosition = pixelPosToGridPos(this.draggingBlock.position);
@@ -580,11 +589,15 @@ class BlockScene extends util.Entity {
       var keyValue = parseInt(e.key);
       if (keyValue == 1 || keyValue == 2) {
         this.onAddShape();
-      } else if (keyValue == 3) {
-        if (buttonControls) this.pickupBlockUsingButtons();
-      } else if (keyValue == 4) {
-        if (buttonControls) this.dropBlockUsingButtons();
-      }
+      } else if (keyValue == 3 || keyValue == 4) {
+        if (buttonControls) {
+          if (this.draggingBlock) {
+            this.dropBlockUsingButtons();
+          } else {
+            this.pickupBlockUsingButtons();
+          }
+        }
+      } 
     }
   }
 
